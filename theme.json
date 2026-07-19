@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "layout": { "contentSize": "820px", "wideSize": "1120px" },
+    "color": {
+      "defaultPalette": false,
+      "palette": [
+        { "slug": "brand", "name": "E7 Blue", "color": "#3b82f6" },
+        { "slug": "brand-dark", "name": "E7 Dark Blue", "color": "#172554" },
+        { "slug": "ink", "name": "Ink", "color": "#0a0a0a" },
+        { "slug": "white", "name": "White", "color": "#ffffff" }
+      ]
+    },
+    "typography": {
+      "fontFamilies": [
+        { "slug": "sans", "name": "Inter", "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif" },
+        { "slug": "display", "name": "Inter Tight", "fontFamily": "Inter Tight, Inter, ui-sans-serif, system-ui, sans-serif" }
+      ]
+    }
+  },
+  "styles": {
+    "typography": { "fontFamily": "var(--wp--preset--font-family--sans)", "lineHeight": "1.65" },
+    "color": { "text": "#0a0a0a", "background": "#ffffff" },
+    "elements": { "heading": { "typography": { "fontFamily": "var(--wp--preset--font-family--display)" } } }
+  }
+}

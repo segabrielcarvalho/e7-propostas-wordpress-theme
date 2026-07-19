@@ -1,0 +1,15 @@
+{
+  "name": "e7-propostas-theme",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "build": "node tools/build-css.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0"
+  },
+  "dependencies": {
+    "intl-tel-input": "^29.1.2"
+  }
+}
