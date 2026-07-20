@@ -107,10 +107,13 @@
 
   const e164Pattern = /^\+[1-9]\d{7,14}$/;
   const croPattern = /^[0-9]{1,8}$/;
-  const vatPattern = /^IE[A-Z0-9]{7,10}$/;
+  const vatPattern = /^IE(?:[0-9]{7}[A-Z]{1,2}|[0-9][A-Z*+][0-9]{5}[A-Z])$/;
   const eircodePattern = /^(?:[AC-FHKNPRTV-Y][0-9]{2}|D6W)[0-9AC-FHKNPRTV-Y]{4}$/;
   const hostnamePattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-  const normalizeVat = (value) => value.toUpperCase().replace(/[\s.\-]+/g, '');
+  const normalizeVat = (value) => {
+    const compact = value.toUpperCase().replace(/[^A-Z0-9*+]/g, '');
+    return compact !== '' && !compact.startsWith('IE') ? `IE${compact}` : compact;
+  };
   const normalizeEircode = (value) => {
     const compact = value.toUpperCase().replace(/[\s\-]+/g, '');
     return eircodePattern.test(compact) ? `${compact.slice(0, 3)} ${compact.slice(3)}` : compact;

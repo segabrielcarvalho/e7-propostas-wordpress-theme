@@ -229,7 +229,7 @@ test('validates Irish fiscal, address and optional contact formats before buildi
   const script = await read('assets/js/proposal.js');
 
   assert.match(script, /\^\[0-9\]\{1,8\}\$/);
-  assert.match(script, /\^IE\[A-Z0-9\]\{7,10\}\$/);
+  assert.match(script, /\^IE\(\?:\[0-9\]\{7\}\[A-Z\]\{1,2\}\|\[0-9\]\[A-Z\*\+\]\[0-9\]\{5\}\[A-Z\]\)\$/);
   assert.match(script, /D6W/);
   assert.match(script, /Enter between 1 and 8 CRO digits/);
   assert.match(script, /Enter a valid Irish VAT number/);

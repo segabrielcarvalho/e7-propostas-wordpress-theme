@@ -352,7 +352,13 @@ test('validates and normalizes Irish invoice formats on their own fields before 
 
   await registration.fill('123456');
   await page.locator('[name="vat_registered"]').check();
-  await page.locator('[name="vat_number"]').fill('ie 123-4567a');
+  const vatNumber = page.locator('[name="vat_number"]');
+  await vatNumber.fill('IEABCDEFG');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(vatNumber).toBeFocused();
+  await expect(vatNumber).toHaveJSProperty('validationMessage', 'Enter a valid Irish VAT number.');
+
+  await vatNumber.fill('ie 123-4567a');
   const registeredEircode = page.locator('[name="registered_eircode"]');
   await registeredEircode.fill('not-an-eircode');
   await page.locator('[data-e7-next-step]').click();
