@@ -305,10 +305,15 @@ test('uses six accessible OTP boxes while preserving one six-digit value for the
   assert.match(css, /\.otp-code-digit\{[^}]*text-align:center/);
 });
 
-test('reopens an accepted proposal with the same validation and download actions shown after signing', async () => {
+test('reopens an accepted proposal as the full document with completion inside the signature section', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
 
+  assert.doesNotMatch(template, /\$screen === 'complete'/);
+  assert.match(template, /<article class="proposal-document">[\s\S]*<section class="proposal-signature"/);
+  assert.match(template, /<section class="proposal-signature"[\s\S]*is_array\(\$acceptance\)[\s\S]*class="gate-card completion"/);
+  assert.match(template, /is_array\(\$acceptance\)[\s\S]*id="acceptance-title"/);
+  assert.match(template, /! is_array\(\$acceptance\)[\s\S]*data-e7-flow/);
   assert.match(template, /\$verify_url\s*=\s*is_array\(\$acceptance\)/);
   assert.match(template, /home_url\('\/verify\/'/);
   assert.match(template, /class="button-secondary"[^>]*href="<\?php echo esc_url\(\$verify_url\); \?>"/);

@@ -51,7 +51,26 @@ $main_site_url = network_home_url('/');
             </div>
         </header>
         <div class="proposal-content"><?php echo wp_kses_post((string) $view['version']['snapshot_html']); ?></div>
-        <section class="proposal-signature" aria-labelledby="acceptance-title" data-e7-flow data-locale="<?php echo esc_attr($locale); ?>" data-rest-url="<?php echo esc_url($view['rest_url']); ?>" data-csrf="<?php echo esc_attr($view['csrf']); ?>">
+        <section class="proposal-signature" aria-labelledby="acceptance-title"<?php if (! is_array($acceptance)) : ?> data-e7-flow data-locale="<?php echo esc_attr($locale); ?>" data-rest-url="<?php echo esc_url($view['rest_url']); ?>" data-csrf="<?php echo esc_attr($view['csrf']); ?>"<?php endif; ?>>
+        <?php if (is_array($acceptance)) : ?>
+            <div class="gate-card completion">
+                <div class="success-mark" aria-hidden="true">✓</div>
+                <p class="eyebrow"><?php echo esc_html($pt ? 'Proposta aceita com sucesso' : 'Proposal accepted successfully'); ?></p>
+                <h2 id="acceptance-title"><?php echo esc_html($pt ? 'Aceite registrado' : 'Acceptance recorded'); ?></h2>
+                <p class="completion-lead"><?php echo esc_html($pt ? 'Obrigado por confirmar esta proposta. Seu aceite foi registrado com segurança e passou a fazer parte do histórico deste documento.' : 'Thank you for confirming this proposal. Your acceptance has been securely recorded and is now part of this document’s audit trail.'); ?></p>
+                <div class="completion-summary">
+                    <p class="completion-summary-title"><?php echo esc_html($pt ? 'Próximos passos' : 'Next steps'); ?></p>
+                    <p><?php echo esc_html($pt ? 'A cópia final reúne os dados do aceite e fica disponível para download e validação.' : 'The final copy includes the acceptance details and remains available for download and validation.'); ?></p>
+                    <p class="completion-note"><?php echo esc_html($pt ? 'Mesmo que a entrega por e-mail atrase ou falhe, o aceite continua válido e registrado.' : 'Even if email delivery is delayed or fails, the acceptance remains valid and recorded.'); ?></p>
+                </div>
+                <?php if ($verify_url !== '' && $download_url !== '') : ?>
+                    <div class="actions">
+                        <a class="button-secondary" href="<?php echo esc_url($verify_url); ?>"><?php echo esc_html($pt ? 'Validar documento' : 'Validate document'); ?></a>
+                        <a class="button-primary" href="<?php echo esc_url($download_url); ?>"><?php echo esc_html($pt ? 'Baixar cópia final' : 'Download final copy'); ?></a>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php else : ?>
             <div class="signature-inner">
                 <div class="signature-heading">
                     <h2 id="acceptance-title"><?php echo esc_html($pt ? 'Assinatura' : 'Signature'); ?></h2>
@@ -126,26 +145,9 @@ $main_site_url = network_home_url('/');
                     </div>
                 </dialog>
             </div>
+        <?php endif; ?>
         </section>
     </article>
-<?php elseif ($screen === 'complete') : ?>
-    <section class="gate-card completion">
-        <div class="success-mark" aria-hidden="true">✓</div>
-        <p class="eyebrow"><?php echo esc_html($pt ? 'Proposta aceita com sucesso' : 'Proposal accepted successfully'); ?></p>
-        <h1><?php echo esc_html($pt ? 'Aceite registrado' : 'Acceptance recorded'); ?></h1>
-        <p class="completion-lead"><?php echo esc_html($pt ? 'Obrigado por confirmar esta proposta. Seu aceite foi registrado com segurança e passou a fazer parte do histórico deste documento.' : 'Thank you for confirming this proposal. Your acceptance has been securely recorded and is now part of this document’s audit trail.'); ?></p>
-        <div class="completion-summary">
-            <p class="completion-summary-title"><?php echo esc_html($pt ? 'Próximos passos' : 'Next steps'); ?></p>
-            <p><?php echo esc_html($pt ? 'A cópia final reúne os dados do aceite e fica disponível para download e validação.' : 'The final copy includes the acceptance details and remains available for download and validation.'); ?></p>
-            <p class="completion-note"><?php echo esc_html($pt ? 'Mesmo que a entrega por e-mail atrase ou falhe, o aceite continua válido e registrado.' : 'Even if email delivery is delayed or fails, the acceptance remains valid and recorded.'); ?></p>
-        </div>
-        <?php if ($verify_url !== '' && $download_url !== '') : ?>
-            <div class="actions">
-                <a class="button-secondary" href="<?php echo esc_url($verify_url); ?>"><?php echo esc_html($pt ? 'Validar documento' : 'Validate document'); ?></a>
-                <a class="button-primary" href="<?php echo esc_url($download_url); ?>"><?php echo esc_html($pt ? 'Baixar cópia final' : 'Download final copy'); ?></a>
-            </div>
-        <?php endif; ?>
-    </section>
 <?php else : ?>
     <section class="proposal-empty-state" aria-labelledby="proposal-unavailable-title">
         <h1 id="proposal-unavailable-title"><?php echo esc_html($pt ? 'Proposta indisponível' : 'Proposal unavailable'); ?></h1>
