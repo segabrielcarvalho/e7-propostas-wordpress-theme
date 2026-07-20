@@ -253,10 +253,89 @@ test('has accessible focus, reduced motion and mobile safe area handling', async
 test('offers an authenticated final download and safe accessible completion UI', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
+  const css = await read('src/input.css');
   assert.match(template, /download_url/);
   assert.match(script, /payload\.download_url/);
   assert.doesNotMatch(script, /innerHTML\s*=/);
   assert.match(script, /tabIndex\s*=\s*-1/);
+  assert.match(script, /completion\.className\s*=\s*'gate-card completion'/);
+  assert.match(script, /flow\.replaceChildren\(completion\)/);
+  assert.match(css, /\.completion \.actions\{[^}]*justify-content:center/);
+});
+
+test('presents professional next steps in both completion paths and supported languages', async () => {
+  const template = await read('proposal.php');
+  const script = await read('assets/js/proposal.js');
+  const css = await read('src/input.css');
+
+  assert.match(template, /Proposta aceita com sucesso/);
+  assert.match(template, /Proposal accepted successfully/);
+  assert.match(template, /Próximos passos/);
+  assert.match(template, /Next steps/);
+  assert.match(script, /Proposta aceita com sucesso/);
+  assert.match(script, /Proposal accepted successfully/);
+  assert.match(script, /completion-summary/);
+  assert.match(css, /\.completion-summary\{[^}]*background:#f6f8fb/);
+});
+
+test('keeps the confirmation checkbox free from a surrounding border', async () => {
+  const css = await read('src/input.css');
+  const consent = css.match(/\.consent\{[^}]*\}/)?.[0] || '';
+
+  assert.match(consent, /border:0/);
+  assert.doesNotMatch(consent, /border:1px/);
+});
+
+test('uses six accessible OTP boxes while preserving one six-digit value for the API', async () => {
+  const template = await read('proposal.php');
+  const script = await read('assets/js/proposal.js');
+  const css = await read('src/input.css');
+
+  assert.equal((template.match(/data-e7-otp-digit/g) || []).length, 6);
+  assert.match(template, /<input name="otp" type="hidden"/);
+  assert.doesNotMatch(template, /<input name="otp" inputmode="numeric"/);
+  assert.match(template, /autocomplete="one-time-code"/);
+  assert.match(template, /Dígito 1 de 6/);
+  assert.match(template, /Digit 6 of 6/);
+  assert.match(script, /const otpDigitInputs =/);
+  assert.match(script, /clipboardData/);
+  assert.match(script, /event\.key === 'Backspace'/);
+  assert.match(script, /otpInput\.value = otpDigitInputs\.map/);
+  assert.match(css, /\.otp-code-group\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.otp-code-digit\{[^}]*text-align:center/);
+});
+
+test('reopens an accepted proposal with the same validation and download actions shown after signing', async () => {
+  const template = await read('proposal.php');
+  const script = await read('assets/js/proposal.js');
+
+  assert.match(template, /\$verify_url\s*=\s*is_array\(\$acceptance\)/);
+  assert.match(template, /home_url\('\/verify\/'/);
+  assert.match(template, /class="button-secondary"[^>]*href="<\?php echo esc_url\(\$verify_url\); \?>"/);
+  assert.match(template, /Validar documento' : 'Validate document/);
+  assert.match(template, /Baixar cópia final' : 'Download final copy/);
+  assert.match(script, /verify\.href = payload\.verify_url/);
+  assert.match(script, /Validar documento/);
+  assert.match(script, /Baixar cópia final/);
+});
+
+test('presents document validation as a clear professional summary with optional technical evidence', async () => {
+  const template = await read('verify.php');
+  const css = await read('src/input.css');
+
+  assert.match(template, /class="verify-heading"/);
+  assert.match(template, /Validação do documento/);
+  assert.match(template, /Document validation/);
+  assert.match(template, /Documento verificado/);
+  assert.match(template, /Document verified/);
+  assert.match(template, /class="verification-status/);
+  assert.match(template, /<details class="verification-technical">/);
+  assert.match(template, /Detalhes técnicos/);
+  assert.match(template, /Technical details/);
+  assert.match(template, /Aceito' : 'Accepted/);
+  assert.doesNotMatch(template, /Cryptographic signature verified/);
+  assert.match(css, /\.verify-card\{[^}]*width:min\(760px,100%\)/);
+  assert.match(css, /\.verify-card h1\{[^}]*clamp\(34px,6vw,50px\)/);
 });
 
 test('localizes the private gate and client workflow in both supported languages', async () => {

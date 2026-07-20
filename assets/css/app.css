@@ -113,10 +113,14 @@ form{display:grid;gap:18px;margin-top:28px}
 .iti{width:100%}
 .iti input{width:100%}
 .otp-sent-to strong{color:var(--ink)}
+.otp-code-fieldset{margin:0;border:0;padding:0}
+.otp-code-fieldset legend{margin-bottom:8px;color:#344054;font-size:13px;font-weight:700}
+.otp-code-group{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.otp-code-digit{min-width:0;height:58px;padding:0;border-radius:12px;font:700 24px/1 'Inter Tight',sans-serif;text-align:center}
 .otp-resend{margin-top:14px;border:0;background:transparent;padding:0;color:#2563eb;font:700 13px Inter,sans-serif;cursor:pointer}
 .otp-resend:hover{text-decoration:underline}
 .otp-resend:disabled{cursor:wait;opacity:.55}
-.consent{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);border-radius:var(--radius-ui);padding:18px;font-weight:500}
+.consent{display:flex;align-items:flex-start;gap:12px;border:0;padding:0;font-weight:500}
 .consent input{width:20px;height:20px;margin-top:2px}
 .dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:26px;border-top:1px solid var(--line);padding-top:20px}
 .dialog-actions [hidden],[hidden]{display:none!important}
@@ -130,8 +134,39 @@ form{display:grid;gap:18px;margin-top:28px}
 .verify-list dt{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}
 .verify-list dd{margin:0}
 .verify-list .hash{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:12px}
+.verify-card{width:min(760px,100%)}
+.verify-heading{text-align:center}
+.verify-heading .success-mark,.verification-mark{margin-inline:auto}
+.verify-heading .eyebrow{margin:18px 0 10px}
+.verify-card h1{margin:0;font:700 clamp(34px,6vw,50px)/1 'Inter Tight',sans-serif;letter-spacing:-.045em}
+.verify-card .verify-lead{max-width:620px;margin:18px auto 0;font-size:16px;line-height:1.6}
+.verification-status{display:inline-flex;align-items:center;gap:9px;margin-top:22px;border-radius:var(--radius-pill);padding:9px 14px;font-size:13px;font-weight:700}
+.verification-status span{width:8px;height:8px;border-radius:50%;background:currentColor}
+.verification-status.is-verified{background:#dcfce7;color:#15803d}
+.verification-status.is-limited{background:#fff7ed;color:#c2410c}
+.verification-mark{display:grid;width:54px;height:54px;place-items:center;border-radius:50%;font:800 22px 'Inter Tight',sans-serif}
+.verification-mark.is-error{background:#fee2e2;color:#b91c1c}
+.verify-section-title{margin:36px 0 12px;font:700 22px/1.2 'Inter Tight',sans-serif;letter-spacing:-.02em}
+.verify-list-summary{margin-top:0}
+.verify-list dd code{overflow-wrap:anywhere;font:500 13px/1.5 ui-monospace,monospace}
+.verification-technical{margin-top:24px;border-top:1px solid var(--line);padding-top:20px}
+.verification-technical summary{color:#2563eb;font-size:14px;font-weight:700;cursor:pointer}
+.verification-technical summary:hover{text-decoration:underline}
+.verification-technical-intro{margin:12px 0 0;font-size:14px}
+.verification-technical .verify-list{margin-top:18px}
+.verification-technical[open] summary{color:#1d4ed8}
 .completion{text-align:center}
 .completion .success-mark{margin-inline:auto}
+.completion .eyebrow{margin:18px 0 10px}
+.completion h1,.completion h2{margin:0;font:700 clamp(36px,7vw,58px)/.98 'Inter Tight',sans-serif;letter-spacing:-.045em}
+.completion p{color:var(--muted)}
+.completion .completion-lead{margin:18px 0 0;font-size:16px;line-height:1.6}
+.completion-summary{margin-top:24px;border-radius:var(--radius-ui);background:#f6f8fb;padding:18px 20px;text-align:left}
+.completion-summary p{margin:0;font-size:14px;line-height:1.55}
+.completion-summary p+p{margin-top:8px}
+.completion-summary .completion-summary-title{color:var(--ink);font-weight:700}
+.completion-summary .completion-note{font-size:13px}
+.completion .actions{flex-wrap:wrap;justify-content:center;margin-top:28px}
 
 .proposal-empty-main{display:grid;place-items:center}
 .proposal-empty-state{width:min(650px,100%);margin-inline:auto;background:transparent;border:0;box-shadow:none;text-align:center}
@@ -155,6 +190,10 @@ form{display:grid;gap:18px;margin-top:28px}
 .proposal-content{width:min(100% - 32px,1120px);padding:48px 0}
 .proposal-content figure{overflow-x:auto}
 .proposal-content table{min-width:560px}
+.proposal-content .e7-investment-table{overflow:visible}
+.proposal-content .e7-investment-table table{min-width:0;table-layout:fixed}
+.proposal-content .e7-investment-table th,.proposal-content .e7-investment-table td{padding:12px 8px;overflow-wrap:anywhere}
+.proposal-content .e7-investment-table th:last-child,.proposal-content .e7-investment-table td:last-child{width:96px;white-space:nowrap;text-align:right}
 .proposal-signature{padding:48px 0 64px}
 .signature-inner{width:min(100% - 32px,1120px)}
 .signer-row{align-items:stretch;flex-direction:column;padding:20px}
@@ -165,6 +204,8 @@ form{display:grid;gap:18px;margin-top:28px}
 .dialog-actions button{flex:1}
 .dialog-progress{margin-right:48px}
 .dialog-progress-labels{gap:3px;font-size:9px}
+.otp-code-group{gap:6px}
+.otp-code-digit{height:48px;font-size:21px}
 .actions{flex-direction:column-reverse}
 .actions button{width:100%}
 .legal-row{flex-direction:column}

@@ -7,6 +7,7 @@ $locale = (string) ($view['locale'] ?? $view['settings']['locale'] ?? 'pt_BR');
 $pt = $locale === 'pt_BR';
 $acceptance = is_array($view['acceptance'] ?? null) ? $view['acceptance'] : null;
 $download_url = is_array($acceptance) ? home_url('/download/' . $acceptance['acceptance']['public_id'] . '/') : '';
+$verify_url = is_array($acceptance) ? home_url('/verify/' . $acceptance['acceptance']['public_id'] . '/') : '';
 $snapshot = json_decode((string) ($view['version']['snapshot_json'] ?? ''), true);
 $metadata = is_array($snapshot) && is_array($snapshot['metadata'] ?? null) ? $snapshot['metadata'] : [];
 $proposal_title = (string) ($metadata['title'] ?? ($pt ? 'Proposta comercial' : 'Commercial proposal'));
@@ -100,7 +101,18 @@ $main_site_url = network_home_url('/');
                         <section class="dialog-step" data-e7-step="3" hidden>
                             <h2><?php echo esc_html($pt ? 'Informe o código' : 'Enter the code'); ?></h2>
                             <p class="otp-sent-to"><?php echo esc_html($pt ? 'Enviamos um código de seis dígitos para' : 'We sent a six-digit code to'); ?> <strong data-e7-masked-destination></strong>.</p>
-                            <label><?php echo esc_html($pt ? 'Código de 6 dígitos' : '6-digit code'); ?><input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
+                            <fieldset class="otp-code-fieldset">
+                                <legend><?php echo esc_html($pt ? 'Código de 6 dígitos' : '6-digit code'); ?></legend>
+                                <div class="otp-code-group" data-e7-otp-code>
+                                    <input class="otp-code-digit" data-e7-otp-digit type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" autocomplete="one-time-code" enterkeyhint="next" aria-label="<?php echo esc_attr($pt ? 'Dígito 1 de 6' : 'Digit 1 of 6'); ?>" required>
+                                    <input class="otp-code-digit" data-e7-otp-digit type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" enterkeyhint="next" aria-label="<?php echo esc_attr($pt ? 'Dígito 2 de 6' : 'Digit 2 of 6'); ?>" required>
+                                    <input class="otp-code-digit" data-e7-otp-digit type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" enterkeyhint="next" aria-label="<?php echo esc_attr($pt ? 'Dígito 3 de 6' : 'Digit 3 of 6'); ?>" required>
+                                    <input class="otp-code-digit" data-e7-otp-digit type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" enterkeyhint="next" aria-label="<?php echo esc_attr($pt ? 'Dígito 4 de 6' : 'Digit 4 of 6'); ?>" required>
+                                    <input class="otp-code-digit" data-e7-otp-digit type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" enterkeyhint="next" aria-label="<?php echo esc_attr($pt ? 'Dígito 5 de 6' : 'Digit 5 of 6'); ?>" required>
+                                    <input class="otp-code-digit" data-e7-otp-digit type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" enterkeyhint="done" aria-label="<?php echo esc_attr($pt ? 'Dígito 6 de 6' : 'Digit 6 of 6'); ?>" required>
+                                </div>
+                                <input name="otp" type="hidden">
+                            </fieldset>
                             <button class="otp-resend" type="button" data-e7-resend-otp><?php echo esc_html($pt ? 'Reenviar código' : 'Resend code'); ?></button>
                         </section>
                         <section class="dialog-step" data-e7-step="4" hidden>
@@ -117,7 +129,23 @@ $main_site_url = network_home_url('/');
         </section>
     </article>
 <?php elseif ($screen === 'complete') : ?>
-    <section class="gate-card completion"><div class="success-mark" aria-hidden="true">✓</div><h1><?php echo esc_html($pt ? 'Aceite registrado' : 'Acceptance recorded'); ?></h1><p><?php echo esc_html($pt ? 'O aceite permanece válido mesmo se o e-mail falhar. Baixe a cópia final assim que o processamento terminar.' : 'The acceptance remains valid even if email delivery fails. Download the final copy when processing finishes.'); ?></p><?php if ($download_url !== '') : ?><a class="button-primary" href="<?php echo esc_url($download_url); ?>"><?php echo esc_html($pt ? 'Baixar cópia final' : 'Download final copy'); ?></a><?php endif; ?></section>
+    <section class="gate-card completion">
+        <div class="success-mark" aria-hidden="true">✓</div>
+        <p class="eyebrow"><?php echo esc_html($pt ? 'Proposta aceita com sucesso' : 'Proposal accepted successfully'); ?></p>
+        <h1><?php echo esc_html($pt ? 'Aceite registrado' : 'Acceptance recorded'); ?></h1>
+        <p class="completion-lead"><?php echo esc_html($pt ? 'Obrigado por confirmar esta proposta. Seu aceite foi registrado com segurança e passou a fazer parte do histórico deste documento.' : 'Thank you for confirming this proposal. Your acceptance has been securely recorded and is now part of this document’s audit trail.'); ?></p>
+        <div class="completion-summary">
+            <p class="completion-summary-title"><?php echo esc_html($pt ? 'Próximos passos' : 'Next steps'); ?></p>
+            <p><?php echo esc_html($pt ? 'A cópia final reúne os dados do aceite e fica disponível para download e validação.' : 'The final copy includes the acceptance details and remains available for download and validation.'); ?></p>
+            <p class="completion-note"><?php echo esc_html($pt ? 'Mesmo que a entrega por e-mail atrase ou falhe, o aceite continua válido e registrado.' : 'Even if email delivery is delayed or fails, the acceptance remains valid and recorded.'); ?></p>
+        </div>
+        <?php if ($verify_url !== '' && $download_url !== '') : ?>
+            <div class="actions">
+                <a class="button-secondary" href="<?php echo esc_url($verify_url); ?>"><?php echo esc_html($pt ? 'Validar documento' : 'Validate document'); ?></a>
+                <a class="button-primary" href="<?php echo esc_url($download_url); ?>"><?php echo esc_html($pt ? 'Baixar cópia final' : 'Download final copy'); ?></a>
+            </div>
+        <?php endif; ?>
+    </section>
 <?php else : ?>
     <section class="proposal-empty-state" aria-labelledby="proposal-unavailable-title">
         <h1 id="proposal-unavailable-title"><?php echo esc_html($pt ? 'Proposta indisponível' : 'Proposal unavailable'); ?></h1>

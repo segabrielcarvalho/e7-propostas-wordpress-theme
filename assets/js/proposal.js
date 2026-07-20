@@ -74,6 +74,7 @@
   const phoneInput = form.elements.otp_phone;
   const emailInput = form.elements.otp_email;
   const otpInput = form.elements.otp;
+  const otpDigitInputs = [...form.querySelectorAll('[data-e7-otp-digit]')];
   const maskedDestination = flow.querySelector('[data-e7-masked-destination]');
   const steps = [...flow.querySelectorAll('[data-e7-step]')];
   const progress = flow.querySelector('[data-e7-progress]');
@@ -100,12 +101,34 @@
     })
     : null;
 
+  const syncOtpValue = () => {
+    otpInput.value = otpDigitInputs.map((input) => input.value).join('');
+    otpValidated = false;
+  };
+
+  const clearOtpValue = () => {
+    otpDigitInputs.forEach((input) => {
+      input.value = '';
+    });
+    syncOtpValue();
+  };
+
+  const fillOtpDigits = (value, startIndex = 0) => {
+    const digits = value.replace(/\D/g, '').slice(0, otpDigitInputs.length - startIndex);
+    if (digits === '') return;
+    [...digits].forEach((digit, offset) => {
+      otpDigitInputs[startIndex + offset].value = digit;
+    });
+    syncOtpValue();
+    otpDigitInputs[Math.min(startIndex + digits.length, otpDigitInputs.length - 1)].focus();
+  };
+
   const resetOtpState = () => {
     otpRequested = false;
     otpValidated = false;
     sentFingerprint = '';
     selectedDestination = '';
-    otpInput.value = '';
+    clearOtpValue();
   };
 
   const maskDestination = (destination, channel) => {
@@ -189,8 +212,37 @@
     if (sentFingerprint !== '') resetOtpState();
     phoneInput.setCustomValidity('');
   });
-  otpInput.addEventListener('input', () => {
-    otpValidated = false;
+  otpDigitInputs.forEach((input, index) => {
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('input', () => {
+      const digits = input.value.replace(/\D/g, '');
+      input.value = '';
+      if (digits !== '') {
+        fillOtpDigits(digits, index);
+      } else {
+        syncOtpValue();
+      }
+    });
+    input.addEventListener('paste', (event) => {
+      const digits = event.clipboardData?.getData('text').replace(/\D/g, '') || '';
+      if (digits === '') return;
+      event.preventDefault();
+      fillOtpDigits(digits, digits.length === otpDigitInputs.length ? 0 : index);
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Backspace' && input.value === '' && index > 0) {
+        event.preventDefault();
+        otpDigitInputs[index - 1].value = '';
+        syncOtpValue();
+        otpDigitInputs[index - 1].focus();
+      } else if (event.key === 'ArrowLeft' && index > 0) {
+        event.preventDefault();
+        otpDigitInputs[index - 1].focus();
+      } else if (event.key === 'ArrowRight' && index < otpDigitInputs.length - 1) {
+        event.preventDefault();
+        otpDigitInputs[index + 1].focus();
+      }
+    });
   });
 
   const invalidFieldInCurrentStep = () => {
@@ -215,13 +267,13 @@
       otpRequested = true;
       otpValidated = false;
       sentFingerprint = currentFingerprint();
-      otpInput.value = '';
+      clearOtpValue();
       maskedDestination.textContent = maskDestination(selectedDestination, selectedChannel);
       if (advanceToCode) showStep(2);
       status.textContent = payload.dev_code
         ? `${isEnglish ? 'Local environment — code' : 'Ambiente local — código'}: ${payload.dev_code}`
         : (isEnglish ? 'Code sent. Check the contact entered.' : 'Código enviado. Verifique o contato informado.');
-      otpInput.focus();
+      otpDigitInputs[0].focus();
       return true;
     } catch (error) {
       status.textContent = localizedError(error, isEnglish, 'otp');
@@ -305,12 +357,33 @@
       mark.className = 'success-mark';
       mark.setAttribute('aria-hidden', 'true');
       mark.textContent = '✓';
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'eyebrow';
+      eyebrow.textContent = isEnglish ? 'Proposal accepted successfully' : 'Proposta aceita com sucesso';
       const title = document.createElement('h2');
       title.textContent = isEnglish ? 'Acceptance recorded' : 'Aceite registrado';
-      const message = document.createElement('p');
-      message.textContent = isEnglish
-        ? 'The acceptance remains valid even if email delivery fails. The final copy will be available after processing.'
-        : 'O aceite permanece válido mesmo se o e-mail falhar. A cópia final ficará disponível após o processamento.';
+      const lead = document.createElement('p');
+      lead.className = 'completion-lead';
+      lead.textContent = isEnglish
+        ? 'Thank you for confirming this proposal. Your acceptance has been securely recorded and is now part of this document’s audit trail.'
+        : 'Obrigado por confirmar esta proposta. Seu aceite foi registrado com segurança e passou a fazer parte do histórico deste documento.';
+      const summary = document.createElement('div');
+      summary.className = 'completion-summary';
+      const summaryTitle = document.createElement('p');
+      summaryTitle.className = 'completion-summary-title';
+      summaryTitle.textContent = isEnglish ? 'Next steps' : 'Próximos passos';
+      const summaryText = document.createElement('p');
+      summaryText.textContent = isEnglish
+        ? 'The final copy includes the acceptance details and remains available for download and validation.'
+        : 'A cópia final reúne os dados do aceite e fica disponível para download e validação.';
+      const deliveryNote = document.createElement('p');
+      deliveryNote.className = 'completion-note';
+      deliveryNote.textContent = isEnglish
+        ? 'Even if email delivery is delayed or fails, the acceptance remains valid and recorded.'
+        : 'Mesmo que a entrega por e-mail atrase ou falhe, o aceite continua válido e registrado.';
+      summary.append(summaryTitle, summaryText, deliveryNote);
+      const completion = document.createElement('div');
+      completion.className = 'gate-card completion';
       const actions = document.createElement('div');
       actions.className = 'actions';
       const verify = document.createElement('a');
@@ -322,8 +395,9 @@
       download.href = payload.download_url;
       download.textContent = isEnglish ? 'Download final copy' : 'Baixar cópia final';
       actions.append(verify, download);
+      completion.append(mark, eyebrow, title, lead, summary, actions);
       if (dialog.open) dialog.close();
-      flow.replaceChildren(mark, title, message, actions);
+      flow.replaceChildren(completion);
       flow.tabIndex = -1;
       flow.focus();
     } catch (error) {
