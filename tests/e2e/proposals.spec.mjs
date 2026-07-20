@@ -10,6 +10,76 @@ const fillMissingSignerContacts = async (page) => {
   }
 };
 
+const otpMarkup = `
+  <section data-e7-step data-e7-step-kind="code" hidden>
+    <h2 tabindex="-1">Code</h2><strong data-e7-masked-destination></strong>
+    <input data-e7-otp-digit><input data-e7-otp-digit><input data-e7-otp-digit>
+    <input data-e7-otp-digit><input data-e7-otp-digit><input data-e7-otp-digit>
+    <input name="otp" type="hidden"><button data-e7-resend-otp type="button">Resend</button>
+  </section>`;
+
+const flowFixture = ({ irish, otp }) => `
+  <section data-e7-flow data-e7-otp-enabled="${otp ? '1' : '0'}" data-e7-irish-flow="${irish ? '1' : '0'}" data-locale="${irish ? 'en_IE' : 'pt_BR'}" data-rest-url="/api" data-csrf="csrf">
+    <button data-e7-open-dialog type="button">Open</button>
+    <dialog data-e7-dialog><button data-e7-close-dialog type="button">Close</button>
+      <div data-e7-progress><span data-e7-progress-bar></span></div>
+      <div class="dialog-progress-labels">${(irish
+        ? (otp ? ['Responsible', 'Company', 'Billing & use', 'Code', 'Review'] : ['Responsible', 'Company', 'Billing & use', 'Review'])
+        : (otp ? ['Details', 'Code', 'Confirmation'] : ['Details', 'Confirmation']))
+        .map((label) => `<span>${label}</span>`).join('')}</div>
+      <form data-e7-acceptance-form>
+        <section data-e7-step data-e7-step-kind="details"><h2 tabindex="-1">${irish ? 'Responsible' : 'Details'}</h2>
+          <input name="name" required value="Aoife Murphy"><input name="responsible_role" ${irish ? 'required' : ''} value="Director">
+          <input name="email" type="email" required value="aoife@example.ie"><input name="phone" required value="+353871234567">
+          ${irish ? '' : '<input name="company" value="">'}
+        </section>
+        ${irish ? `<section data-e7-step data-e7-step-kind="company" hidden><h2 tabindex="-1">Company</h2>
+          <select name="business_type"><option value="company" selected>Company</option><option value="sole_trader">Sole trader</option></select>
+          <input name="legal_name" required value="Example Limited"><input name="trading_name" value="">
+          <input name="registration_number" required value="123456"><input name="vat_registered" type="checkbox">
+          <div data-e7-vat-fields hidden><input name="vat_number"></div>
+          <input name="registered_line1" required value="1 Main Street"><input name="registered_line2" value="">
+          <input name="registered_city" required value="Cork"><input name="registered_county" value="">
+          <input name="registered_eircode" required value="T12 ABC1"><input name="registered_country_code" value="IE">
+        </section>
+        <section data-e7-step data-e7-step-kind="billing" hidden><h2 tabindex="-1">Billing & use</h2>
+          <input name="finance_email" type="email"><input name="purchase_order">
+          <input name="billing_same_as_registered" type="checkbox" checked>
+          <div data-e7-billing-address hidden><input name="billing_line1"><input name="billing_line2"><input name="billing_city"><input name="billing_county"><input name="billing_eircode"><input name="billing_country_code" value="IE"></div>
+          <input name="payer_same_as_business" type="checkbox" checked><div data-e7-payer-fields hidden><input name="payer_legal_name"></div>
+          <input name="service_city" required value="Cork"><input name="domain"><input name="whatsapp">
+        </section>` : ''}
+        ${otp ? otpMarkup : ''}
+        <section data-e7-step data-e7-step-kind="review" hidden><h2 tabindex="-1">${irish ? 'Review' : 'Confirmation'}</h2>
+          <dl data-e7-review-summary></dl>
+          ${irish ? '<input name="confirmation_b2b" type="checkbox" required checked><input name="confirmation_ireland" type="checkbox" required checked><input name="confirmation_accuracy" type="checkbox" required checked>' : ''}
+          <input name="consent" type="checkbox" required checked>
+        </section>
+        <p data-e7-status></p><button data-e7-prev-step type="button">Back</button><button data-e7-next-step type="button">Next</button><button type="submit">Accept</button>
+      </form>
+    </dialog>
+  </section>`;
+
+const installFlow = async (page, options) => {
+  await page.setContent(flowFixture(options));
+  await page.evaluate(() => {
+    window.e7Requests = [];
+    window.fetch = async (url, request) => {
+      const body = JSON.parse(request.body);
+      window.e7Requests.push({ url: String(url), body });
+      return new Response(JSON.stringify(String(url).endsWith('/accept')
+        ? { verify_url: '/verify/document', download_url: '/download/document' }
+        : { ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+  });
+  await page.addScriptTag({ path: resolve('assets/js/proposal.js') });
+  await page.locator('[data-e7-open-dialog]').click();
+};
+
+const continueFlow = async (page, count) => {
+  for (let index = 0; index < count; index += 1) await page.locator('[data-e7-next-step]').click();
+};
+
 test('legal pages and public validation are reachable', async ({ page }) => {
   for (const path of ['/privacy/', '/electronic-acceptance/', '/validation/']) {
     const response = await page.goto(path);
@@ -93,6 +163,89 @@ test('six OTP boxes combine typing and paste into the single API value', async (
 
   await page.keyboard.press('Backspace');
   await expect(page.locator('input[name="otp"]')).toHaveValue('65432');
+});
+
+test('supports the 2 and 4-step OTP-off matrix without calling OTP endpoints', async ({ page }) => {
+  for (const irish of [false, true]) {
+    await installFlow(page, { irish, otp: false });
+    await expect(page.locator('[data-e7-step]')).toHaveCount(irish ? 4 : 2);
+    await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuemax', String(irish ? 4 : 2));
+
+    await continueFlow(page, irish ? 3 : 1);
+    await expect(page.locator('[data-e7-step-kind="review"]')).toBeVisible();
+    await page.locator('button[type="submit"]').click();
+
+    const requests = await page.evaluate(() => window.e7Requests);
+    expect(requests.filter(({ url }) => url.includes('/otp/'))).toHaveLength(0);
+    expect(requests.at(-1).url).toContain('/accept');
+    expect(requests.at(-1).body.otp).toBe('');
+    if (irish) {
+      expect(requests.at(-1).body.business_profile).toEqual({
+        responsible: { name: 'Aoife Murphy', role: 'Director', email: 'aoife@example.ie', phone: '+353871234567' },
+        type: 'company', legal_name: 'Example Limited', trading_name: '', registration_number: '123456',
+        vat_registered: false, vat_number: '',
+        registered_address: { line1: '1 Main Street', line2: '', city: 'Cork', county: '', eircode: 'T12 ABC1', country_code: 'IE' },
+        billing_same_as_registered: true,
+        billing_address: { line1: '1 Main Street', line2: '', city: 'Cork', county: '', eircode: 'T12 ABC1', country_code: 'IE' },
+        payer_same_as_business: true, payer_legal_name: '', finance_email: '', purchase_order: '', service_city: 'Cork', domain: '', whatsapp: '',
+        confirmations: { b2b: true, ireland: true, accuracy: true },
+      });
+    }
+  }
+});
+
+test('supports the 3 and 5-step OTP-on matrix and validates code before submit', async ({ page }) => {
+  for (const irish of [false, true]) {
+    await installFlow(page, { irish, otp: true });
+    await expect(page.locator('[data-e7-step]')).toHaveCount(irish ? 5 : 3);
+    await continueFlow(page, irish ? 3 : 1);
+    await expect(page.locator('[data-e7-step-kind="code"]')).toBeVisible();
+    await page.locator('[data-e7-otp-digit]').first().evaluate((input) => {
+      const clipboardData = new DataTransfer();
+      clipboardData.setData('text', '123456');
+      input.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData }));
+    });
+    await page.locator('[data-e7-next-step]').click();
+    await expect(page.locator('[data-e7-step-kind="review"]')).toBeVisible();
+    await page.locator('button[type="submit"]').click();
+
+    const requests = await page.evaluate(() => window.e7Requests);
+    expect(requests.filter(({ url }) => url.endsWith('/otp/send'))).toHaveLength(1);
+    expect(requests.filter(({ url }) => url.endsWith('/otp/verify'))).toHaveLength(1);
+    expect(requests.at(-1).body.otp).toBe('123456');
+  }
+});
+
+test('reveals only the Irish conditional fields that the signer activates', async ({ page }) => {
+  await installFlow(page, { irish: true, otp: false });
+  await continueFlow(page, 1);
+  await expect(page.locator('[data-e7-vat-fields]')).toBeHidden();
+  await page.locator('[name="vat_registered"]').check();
+  await expect(page.locator('[data-e7-vat-fields]')).toBeVisible();
+  await page.locator('[name="vat_registered"]').uncheck();
+  await expect(page.locator('[data-e7-vat-fields]')).toBeHidden();
+
+  await continueFlow(page, 1);
+  await expect(page.locator('[data-e7-billing-address]')).toBeHidden();
+  await page.locator('[name="billing_same_as_registered"]').uncheck();
+  await expect(page.locator('[data-e7-billing-address]')).toBeVisible();
+  await page.locator('[name="payer_same_as_business"]').uncheck();
+  await expect(page.locator('[data-e7-payer-fields]')).toBeVisible();
+});
+
+test('keeps three accepted actions stacked without mobile overflow', async ({ page }) => {
+  await page.setContent(`
+    <link rel="stylesheet" href="http://proposal.e7-company.local/wp-content/themes/e7-propostas/assets/css/app.css">
+    <div class="signature-inner"><div class="signer-row"><div class="signer-info"><strong>Aoife</strong><span>aoife@example.ie</span></div><div class="signer-actions">
+      <a class="button-secondary">Validate document</a><a class="button-primary">Download final copy</a><a class="button-primary">Download invoice</a>
+    </div></div></div>`, { waitUntil: 'networkidle' });
+  const dimensions = await page.locator('.signer-row').evaluate((row) => ({
+    right: row.getBoundingClientRect().right,
+    viewport: document.documentElement.clientWidth,
+    pageWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.right).toBeLessThanOrEqual(dimensions.viewport + 1);
+  expect(dimensions.pageWidth).toBeLessThanOrEqual(dimensions.viewport);
 });
 
 test('investment table fits entirely within a mobile proposal', async ({ page }) => {

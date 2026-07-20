@@ -125,7 +125,7 @@ test('hides internal version and currency metadata from the proposal cover', asy
   assert.doesNotMatch(css, /\.document-meta/);
 });
 
-test('opens a clean three-step email acceptance dialog from the proposal signature area', async () => {
+test('selects the exact 2, 3, 4 or 5-step acceptance flow from plugin view flags', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
   const css = await read('src/input.css');
@@ -133,8 +133,13 @@ test('opens a clean three-step email acceptance dialog from the proposal signatu
   assert.match(template, /proposal-signature/);
   assert.match(template, /data-e7-open-dialog/);
   assert.match(template, /<dialog[^>]+acceptance-dialog/);
-  assert.equal((template.match(/data-e7-step=/g) || []).length, 3);
-  assert.doesNotMatch(template, /data-e7-step="4"/);
+  assert.match(template, /\$view\['otp_enabled'\]/);
+  assert.match(template, /\$view\['irish_invoice_flow'\]/);
+  assert.match(template, /\$step_labels\s*=\s*\$irish_invoice_flow/);
+  assert.match(template, /\$otp_enabled\s*\?\s*\['Details', 'Code', 'Confirmation'\]/);
+  assert.match(template, /\$otp_enabled\s*\?\s*\['Responsible', 'Company', 'Billing & use', 'Code', 'Review'\]/);
+  assert.match(template, /data-e7-otp-enabled=/);
+  assert.match(template, /data-e7-irish-flow=/);
   assert.doesNotMatch(template, /acceptance-card/);
   assert.match(script, /showModal\(\)/);
   assert.match(script, /data-e7-next-step/);
@@ -144,30 +149,23 @@ test('opens a clean three-step email acceptance dialog from the proposal signatu
   assert.match(css, /\.proposal-signature/);
 });
 
-test('temporarily offers email only and keeps SMS out of the public proposal flow', async () => {
+test('keeps the standard flow editable and bypasses every OTP endpoint when OTP is off', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
-  const functions = await read('functions.php');
 
   assert.doesNotMatch(template, /name="otp_channel"/);
   assert.doesNotMatch(template, /value="sms"|>SMS</);
-  assert.doesNotMatch(template, /data-e7-phone-contact/);
-  assert.doesNotMatch(template, /name="otp_phone"/);
-  assert.match(template, /data-e7-email-contact/);
-  assert.match(template, /name="otp_email"[^>]+value="<\?php echo esc_attr\(\$client_email\); \?>"/);
-  assert.match(template, /\$client_email !== '' \? 'readonly' : ''/);
-  assert.doesNotMatch(template, /class="otp-method-list"/);
-  assert.doesNotMatch(template, />Método</);
-  assert.match(template, />Código</);
-  assert.doesNotMatch(template, />Contato</);
+  assert.match(template, /name="name"[^>]+value="<\?php echo esc_attr\(\$client_name\); \?>"[^>]+required/);
+  assert.match(template, /name="email"[^>]+value="<\?php echo esc_attr\(\$client_email\); \?>"/);
+  assert.match(template, /name="phone"/);
+  assert.match(template, /name="company"/);
+  assert.doesNotMatch(template, /name="email"[^>]+readonly/);
+  assert.match(script, /const otpEnabled = flow\.dataset\.e7OtpEnabled === '1'/);
+  assert.match(script, /if \(!otpEnabled\) \{[\s\S]*showStep\(currentStep \+ 1\)/);
+  assert.match(script, /!otpEnabled \|\| otpValidated/);
   assert.match(script, /channel:\s*'email'/);
-  assert.match(script, /destination:\s*emailInput\.value/);
-  assert.match(script, /email:\s*emailInput\.value/);
-  assert.match(script, /phone:\s*''/);
-  assert.doesNotMatch(script, /phoneInput|phonePicker|normalizedPhone|selectedChannel/);
   assert.match(script, /\/otp\/verify/);
-  assert.match(script, /data-e7-resend-otp/);
-  assert.doesNotMatch(functions, /wp_enqueue_(?:style|script)\('e7-intl-tel-input'/);
+  assert.match(script, /otp:\s*otpEnabled \? data\.get\('otp'\) : ''/);
 });
 
 test('connects the signature area to the institutional design with friendly progress', async () => {
@@ -179,11 +177,9 @@ test('connects the signature area to the institutional design with friendly prog
   assert.match(template, /data-e7-progress/);
   assert.match(template, /role="progressbar"/);
   assert.match(template, /data-e7-progress-bar/);
-  assert.match(template, />Dados</);
-  assert.doesNotMatch(template, />Método</);
-  assert.match(template, />Código</);
-  assert.match(template, />Confirma(?:ç|&ccedil;)ão</);
-  assert.doesNotMatch(template, />Contato</);
+  assert.match(template, /Responsible/);
+  assert.match(template, /Billing &amp; use/);
+  assert.match(template, /Confirmation/);
   assert.doesNotMatch(template, /Etapa 1 de 3|Step 1 of 3/);
   assert.match(script, /aria-valuenow/);
   assert.match(script, /progressBar\.style\.width/);
@@ -200,14 +196,33 @@ test('connects the signature area to the institutional design with friendly prog
   assert.match(css, /input,select,textarea\{[^}]*border-radius:var\(--radius-ui\)/);
 });
 
-test('does not ask the signer for a role in either supported language', async () => {
+test('collects the complete Irish business profile with conditional fiscal and billing fields', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
+  const functions = await read('functions.php');
 
-  assert.doesNotMatch(template, /name="role"/);
-  assert.doesNotMatch(template, /'Cargo'\s*:\s*'Role'/);
-  assert.doesNotMatch(script, /data\.get\('role'\)/);
-  assert.match(script, /role:\s*''/);
+  for (const field of [
+    'responsible_role', 'business_type', 'legal_name', 'trading_name', 'registration_number',
+    'vat_registered', 'vat_number', 'registered_line1', 'registered_line2', 'registered_city',
+    'registered_county', 'registered_eircode', 'finance_email', 'purchase_order',
+    'billing_same_as_registered', 'billing_line1', 'billing_line2', 'billing_city',
+    'billing_county', 'billing_eircode', 'payer_same_as_business', 'payer_legal_name',
+    'service_city', 'domain', 'whatsapp', 'confirmation_b2b', 'confirmation_ireland',
+    'confirmation_accuracy',
+  ]) assert.match(template, new RegExp(`name="${field}"`));
+  assert.match(template, /name="registered_country_code"[^>]+value="IE"/);
+  assert.match(template, /name="billing_country_code"[^>]+value="IE"/);
+  assert.match(template, /data-e7-vat-fields[^>]+hidden/);
+  assert.match(template, /data-e7-billing-address[^>]+hidden/);
+  assert.match(template, /data-e7-payer-fields[^>]+hidden/);
+  assert.match(template, /data-e7-review-summary/);
+  assert.match(script, /business_profile:\s*businessProfile/);
+  assert.match(script, /responsible:\s*\{/);
+  assert.match(script, /registered_address:\s*addressFromForm\('registered'/);
+  assert.match(script, /billing_address:\s*addressFromForm\('billing'/);
+  assert.match(script, /confirmations:\s*\{/);
+  assert.match(functions, /e7-intl-tel-input/);
+  assert.match(script, /getNumber\(\)/);
 });
 
 test('publishes the proposal title without exposing client details in social metadata', async () => {
@@ -247,12 +262,15 @@ test('has accessible focus, reduced motion and mobile safe area handling', async
   assert.match(css, /safe-area-inset-bottom/);
 });
 
-test('offers authenticated final actions in the compact signature layout', async () => {
+test('offers the invoice download only from an issued invoice returned on reload', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
   const css = await read('src/input.css');
   assert.match(template, /download_url/);
-  assert.match(script, /payload\.download_url/);
+  assert.match(template, /invoice_download_url/);
+  assert.match(template, /issued_invoice/);
+  assert.match(template, /Download invoice/);
+  assert.doesNotMatch(script, /invoice_download_url|Download invoice|Baixar fatura/);
   assert.doesNotMatch(script, /innerHTML\s*=/);
   assert.match(script, /tabIndex\s*=\s*-1/);
   assert.match(script, /completedSignature\.className\s*=\s*'signature-inner signature-complete'/);
@@ -321,6 +339,25 @@ test('reopens an accepted proposal with signer details and final actions in the 
   assert.match(script, /Baixar cópia final/);
   assert.match(script, /signerName\.textContent = data\.get\('name'\)/);
   assert.match(script, /signerEmail\.textContent = emailInput\.value/);
+});
+
+test('renders invoice verification from the plugin allowlist without private business data', async () => {
+  const template = await read('invoice-verify.php');
+  const css = await read('src/input.css');
+
+  for (const key of [
+    'invoice_number', 'supplier_legal_name', 'customer_legal_name', 'issued_at', 'currency',
+    'total', 'status', 'artifact_hash', 'signature_verified', 'replacement_invoice_number',
+  ]) assert.match(template, new RegExp(`\\['${key}'\\]`));
+  assert.match(template, /Invoice verified/);
+  assert.match(template, /Invoice invalid/);
+  assert.match(template, /Invoice cancelled/);
+  assert.match(template, /class="verify-card invoice-verify"/);
+  assert.doesNotMatch(template, /address|vat_number|finance_email|phone|items/i);
+  const verifyCard = css.match(/\.verify-card\{width:min\(760px,100%\)[^}]*\}/)?.[0] || '';
+  assert.match(verifyCard, /border:0/);
+  assert.match(verifyCard, /background:transparent/);
+  assert.match(verifyCard, /box-shadow:none/);
 });
 
 test('presents document validation as a clear professional summary with optional technical evidence', async () => {
