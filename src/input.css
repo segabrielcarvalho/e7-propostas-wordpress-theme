@@ -135,7 +135,7 @@ form{display:grid;gap:18px;margin-top:28px}
 .verify-list dt{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}
 .verify-list dd{margin:0}
 .verify-list .hash{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:12px}
-.verify-card{width:min(760px,100%)}
+.verify-card{width:min(760px,100%);border:0;border-radius:0;background:transparent;box-shadow:none}
 .verify-heading{text-align:center}
 .verify-heading .success-mark,.verification-mark{margin-inline:auto}
 .verify-heading .eyebrow{margin:18px 0 10px}

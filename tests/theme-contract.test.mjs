@@ -341,7 +341,10 @@ test('presents document validation as a clear professional summary with optional
   assert.match(template, /Technical details/);
   assert.match(template, /Aceito' : 'Accepted/);
   assert.doesNotMatch(template, /Cryptographic signature verified/);
-  assert.match(css, /\.verify-card\{[^}]*width:min\(760px,100%\)/);
+  const verifyCard = css.match(/\.verify-card\{width:min\(760px,100%\)[^}]*\}/)?.[0] || '';
+  assert.match(verifyCard, /border:0/);
+  assert.match(verifyCard, /background:transparent/);
+  assert.match(verifyCard, /box-shadow:none/);
   assert.match(css, /\.verify-card h1\{[^}]*clamp\(34px,6vw,50px\)/);
 });
 
