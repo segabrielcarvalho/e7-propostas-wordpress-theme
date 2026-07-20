@@ -218,8 +218,8 @@ test('collects the complete Irish business profile with conditional fiscal and b
   assert.match(template, /data-e7-review-summary/);
   assert.match(script, /business_profile:\s*businessProfile/);
   assert.match(script, /responsible:\s*\{/);
-  assert.match(script, /registered_address:\s*addressFromForm\('registered'/);
-  assert.match(script, /billing_address:\s*addressFromForm\('billing'/);
+  assert.match(script, /registered_address:\s*registeredAddress/);
+  assert.match(script, /billing_address:\s*sameBilling \? registeredAddress : addressFromForm\('billing'\)/);
   assert.match(script, /confirmations:\s*\{/);
   assert.match(functions, /e7-intl-tel-input/);
   assert.match(script, /getNumber\(\)/);
@@ -303,12 +303,13 @@ test('uses six accessible OTP boxes while preserving one six-digit value for the
   const script = await read('assets/js/proposal.js');
   const css = await read('src/input.css');
 
-  assert.equal((template.match(/data-e7-otp-digit/g) || []).length, 6);
+  assert.match(template, /for \(\$digit = 1; \$digit <= 6; \$digit\+\+\)/);
+  assert.equal((template.match(/data-e7-otp-digit/g) || []).length, 1);
   assert.match(template, /<input name="otp" type="hidden"/);
   assert.doesNotMatch(template, /<input name="otp" inputmode="numeric"/);
   assert.match(template, /autocomplete="one-time-code"/);
-  assert.match(template, /Dígito 1 de 6/);
-  assert.match(template, /Digit 6 of 6/);
+  assert.match(template, /"Dígito \{\$digit\} de 6"/);
+  assert.match(template, /"Digit \{\$digit\} of 6"/);
   assert.match(script, /const otpDigitInputs =/);
   assert.match(script, /clipboardData/);
   assert.match(script, /event\.key === 'Backspace'/);

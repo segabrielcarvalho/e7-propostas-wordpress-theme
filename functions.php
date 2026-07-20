@@ -20,8 +20,12 @@ function e7_propostas_theme_assets(): void
 {
     $css = get_template_directory() . '/assets/css/app.css';
     $js = get_template_directory() . '/assets/js/proposal.js';
+    $phoneCss = get_template_directory() . '/assets/vendor/intl-tel-input/css/intlTelInput.min.css';
+    $phoneJs = get_template_directory() . '/assets/vendor/intl-tel-input/js/intlTelInputWithUtils.min.js';
+    wp_enqueue_style('e7-intl-tel-input', get_template_directory_uri() . '/assets/vendor/intl-tel-input/css/intlTelInput.min.css', [], (string) filemtime($phoneCss));
     wp_enqueue_style('e7-propostas', get_template_directory_uri() . '/assets/css/app.css', [], (string) filemtime($css));
-    wp_enqueue_script('e7-propostas', get_template_directory_uri() . '/assets/js/proposal.js', [], (string) filemtime($js), ['strategy' => 'defer', 'in_footer' => true]);
+    wp_enqueue_script('e7-intl-tel-input', get_template_directory_uri() . '/assets/vendor/intl-tel-input/js/intlTelInputWithUtils.min.js', [], (string) filemtime($phoneJs), ['strategy' => 'defer', 'in_footer' => true]);
+    wp_enqueue_script('e7-propostas', get_template_directory_uri() . '/assets/js/proposal.js', ['e7-intl-tel-input'], (string) filemtime($js), ['strategy' => 'defer', 'in_footer' => true]);
 }
 add_action('wp_enqueue_scripts', 'e7_propostas_theme_assets');
 

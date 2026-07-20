@@ -351,15 +351,16 @@ test('sends email, validates the code and reaches confirmation without accepting
   await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuenow', '3');
 });
 
-test('does not expose SMS or phone fields while the channel is disabled', async ({ page }) => {
+test('does not expose SMS and keeps editable contact fields for compatibility', async ({ page }) => {
   test.skip(!code || !password, 'Set E7_PROPOSAL_TEST_CODE and E7_PROPOSAL_TEST_PASSWORD.');
   await page.goto(`/p/${code}/`);
   await page.locator('#proposal-password').fill(password);
   await page.getByRole('button', { name: /Continue|Continuar/ }).click();
   await page.locator('[data-e7-open-dialog]').click();
 
-  await expect(page.locator('[data-e7-phone-contact]')).toHaveCount(0);
-  await expect(page.locator('#e7-otp-phone')).toHaveCount(0);
+  await expect(page.locator('input[name="phone"]')).toBeVisible();
+  await expect(page.locator('input[name="phone"]')).toBeEditable();
   await expect(page.getByText('SMS', { exact: true })).toHaveCount(0);
   await expect(page.locator('#e7-otp-email')).toHaveAttribute('required', '');
+  await expect(page.locator('#e7-otp-email')).toBeEditable();
 });
