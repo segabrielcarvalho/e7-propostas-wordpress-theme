@@ -18,6 +18,8 @@ $client_name = (string) ($view['settings']['client_name'] ?? '');
 $client_company = (string) ($view['settings']['client_company'] ?? '');
 $client_email = (string) ($view['settings']['client_email'] ?? '');
 $client_phone = (string) ($view['settings']['client_phone'] ?? '');
+$accepted_signer_name = is_array($acceptance) ? (string) ($acceptance['acceptance']['signer_name'] ?? $client_name) : '';
+$accepted_signer_email = is_array($acceptance) ? (string) ($acceptance['acceptance']['signer_email'] ?? $client_email) : '';
 $main_site_url = network_home_url('/');
 ?>
 <main id="main-content" class="proposal-main<?php echo $screen === 'password' ? ' proposal-password-main' : ($screen === 'proposal' ? ' proposal-document-main' : ($screen === 'unavailable' ? ' proposal-empty-main' : '')); ?>">
@@ -53,22 +55,20 @@ $main_site_url = network_home_url('/');
         <div class="proposal-content"><?php echo wp_kses_post((string) $view['version']['snapshot_html']); ?></div>
         <section class="proposal-signature" aria-labelledby="acceptance-title"<?php if (! is_array($acceptance)) : ?> data-e7-flow data-locale="<?php echo esc_attr($locale); ?>" data-rest-url="<?php echo esc_url($view['rest_url']); ?>" data-csrf="<?php echo esc_attr($view['csrf']); ?>"<?php endif; ?>>
         <?php if (is_array($acceptance)) : ?>
-            <div class="gate-card completion">
-                <div class="success-mark" aria-hidden="true">✓</div>
-                <p class="eyebrow"><?php echo esc_html($pt ? 'Proposta aceita com sucesso' : 'Proposal accepted successfully'); ?></p>
-                <h2 id="acceptance-title"><?php echo esc_html($pt ? 'Aceite registrado' : 'Acceptance recorded'); ?></h2>
-                <p class="completion-lead"><?php echo esc_html($pt ? 'Obrigado por confirmar esta proposta. Seu aceite foi registrado com segurança e passou a fazer parte do histórico deste documento.' : 'Thank you for confirming this proposal. Your acceptance has been securely recorded and is now part of this document’s audit trail.'); ?></p>
-                <div class="completion-summary">
-                    <p class="completion-summary-title"><?php echo esc_html($pt ? 'Próximos passos' : 'Next steps'); ?></p>
-                    <p><?php echo esc_html($pt ? 'A cópia final reúne os dados do aceite e fica disponível para download e validação.' : 'The final copy includes the acceptance details and remains available for download and validation.'); ?></p>
-                    <p class="completion-note"><?php echo esc_html($pt ? 'Mesmo que a entrega por e-mail atrase ou falhe, o aceite continua válido e registrado.' : 'Even if email delivery is delayed or fails, the acceptance remains valid and recorded.'); ?></p>
+            <div class="signature-inner signature-complete">
+                <div class="signature-heading">
+                    <h2 id="acceptance-title"><?php echo esc_html($pt ? 'Assinatura' : 'Signature'); ?></h2>
+                    <p><?php echo esc_html($pt ? 'Esta proposta foi aceita e registrada com segurança.' : 'This proposal has been securely accepted and recorded.'); ?></p>
                 </div>
-                <?php if ($verify_url !== '' && $download_url !== '') : ?>
-                    <div class="actions">
+                <div class="signer-row">
+                    <div class="signer-info"><strong><?php echo esc_html($accepted_signer_name); ?></strong><?php if ($accepted_signer_email !== '') : ?><span><?php echo esc_html($accepted_signer_email); ?></span><?php endif; ?></div>
+                    <?php if ($verify_url !== '' && $download_url !== '') : ?>
+                    <div class="signer-actions">
                         <a class="button-secondary" href="<?php echo esc_url($verify_url); ?>"><?php echo esc_html($pt ? 'Validar documento' : 'Validate document'); ?></a>
                         <a class="button-primary" href="<?php echo esc_url($download_url); ?>"><?php echo esc_html($pt ? 'Baixar cópia final' : 'Download final copy'); ?></a>
                     </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php else : ?>
             <div class="signature-inner">

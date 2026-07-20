@@ -250,7 +250,7 @@ test('has accessible focus, reduced motion and mobile safe area handling', async
   assert.match(css, /safe-area-inset-bottom/);
 });
 
-test('offers an authenticated final download and safe accessible completion UI', async () => {
+test('offers authenticated final actions in the compact signature layout', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
   const css = await read('src/input.css');
@@ -258,24 +258,21 @@ test('offers an authenticated final download and safe accessible completion UI',
   assert.match(script, /payload\.download_url/);
   assert.doesNotMatch(script, /innerHTML\s*=/);
   assert.match(script, /tabIndex\s*=\s*-1/);
-  assert.match(script, /completion\.className\s*=\s*'gate-card completion'/);
-  assert.match(script, /flow\.replaceChildren\(completion\)/);
-  assert.match(css, /\.completion \.actions\{[^}]*justify-content:center/);
+  assert.match(script, /completedSignature\.className\s*=\s*'signature-inner signature-complete'/);
+  assert.match(script, /flow\.replaceChildren\(completedSignature\)/);
+  assert.match(css, /\.signer-actions\{[^}]*display:flex/);
 });
 
-test('presents professional next steps in both completion paths and supported languages', async () => {
+test('keeps the accepted state concise in both supported languages', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
-  const css = await read('src/input.css');
 
-  assert.match(template, /Proposta aceita com sucesso/);
-  assert.match(template, /Proposal accepted successfully/);
-  assert.match(template, /Próximos passos/);
-  assert.match(template, /Next steps/);
-  assert.match(script, /Proposta aceita com sucesso/);
-  assert.match(script, /Proposal accepted successfully/);
-  assert.match(script, /completion-summary/);
-  assert.match(css, /\.completion-summary\{[^}]*background:#f6f8fb/);
+  assert.match(template, /Esta proposta foi aceita e registrada com segurança/);
+  assert.match(template, /This proposal has been securely accepted and recorded/);
+  assert.match(script, /Esta proposta foi aceita e registrada com segurança/);
+  assert.match(script, /This proposal has been securely accepted and recorded/);
+  assert.doesNotMatch(template, /Próximos passos|Next steps/);
+  assert.doesNotMatch(script, /completion-summary/);
 });
 
 test('keeps the confirmation checkbox free from a surrounding border', async () => {
@@ -305,14 +302,17 @@ test('uses six accessible OTP boxes while preserving one six-digit value for the
   assert.match(css, /\.otp-code-digit\{[^}]*text-align:center/);
 });
 
-test('reopens an accepted proposal as the full document with completion inside the signature section', async () => {
+test('reopens an accepted proposal with signer details and final actions in the original signature layout', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
 
   assert.doesNotMatch(template, /\$screen === 'complete'/);
   assert.match(template, /<article class="proposal-document">[\s\S]*<section class="proposal-signature"/);
-  assert.match(template, /<section class="proposal-signature"[\s\S]*is_array\(\$acceptance\)[\s\S]*class="gate-card completion"/);
-  assert.match(template, /is_array\(\$acceptance\)[\s\S]*id="acceptance-title"/);
+  assert.match(template, /is_array\(\$acceptance\)[\s\S]*class="signature-inner signature-complete"/);
+  assert.match(template, /\$acceptance\['acceptance'\]\['signer_name'\]/);
+  assert.match(template, /\$acceptance\['acceptance'\]\['signer_email'\]/);
+  assert.match(template, /class="signer-row"[\s\S]*class="signer-info"[\s\S]*class="signer-actions"/);
+  assert.doesNotMatch(template, /class="gate-card completion"/);
   assert.match(template, /! is_array\(\$acceptance\)[\s\S]*data-e7-flow/);
   assert.match(template, /\$verify_url\s*=\s*is_array\(\$acceptance\)/);
   assert.match(template, /home_url\('\/verify\/'/);
@@ -322,6 +322,8 @@ test('reopens an accepted proposal as the full document with completion inside t
   assert.match(script, /verify\.href = payload\.verify_url/);
   assert.match(script, /Validar documento/);
   assert.match(script, /Baixar cópia final/);
+  assert.match(script, /signerName\.textContent = data\.get\('name'\)/);
+  assert.match(script, /signerEmail\.textContent = emailInput\.value/);
 });
 
 test('presents document validation as a clear professional summary with optional technical evidence', async () => {
@@ -353,7 +355,8 @@ test('localizes the private gate and client workflow in both supported languages
   assert.match(template, /Continuar' : 'Continue/);
   assert.doesNotMatch(template, /Proposal password|Open proposal/);
   assert.match(script, /en_IE/);
-  assert.match(script, /Acceptance recorded/);
+  assert.match(script, /Assinatura/);
+  assert.match(script, /Signature/);
   assert.match(script, /localizedError/);
   assert.doesNotMatch(script, /status\.textContent\s*=\s*error\.message/);
   assert.match(template, /Proposal unavailable/);

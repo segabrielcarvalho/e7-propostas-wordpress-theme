@@ -79,6 +79,7 @@ form{display:grid;gap:18px;margin-top:28px}
 .signer-info{display:grid;line-height:1.45}
 .signer-info strong{font-size:16px}
 .signer-info span{color:#2563eb;font-size:15px}
+.signer-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
 .signature-button{min-width:168px;min-height:48px;border:1px solid #2563eb;border-radius:var(--radius-pill);background:#2563eb;padding:11px 22px;color:#fff;font:700 13px Inter,sans-serif;cursor:pointer;transition:transform .15s,background .15s}
 .signature-button:hover{background:#3b82f6;transform:translateY(-1px)}
 .acceptance-dialog{width:min(620px,calc(100% - 28px));max-width:none;max-height:min(760px,calc(100vh - 28px));overflow:auto;border:0;border-radius:var(--radius-ui);background:#fff;padding:0;color:var(--ink);box-shadow:0 32px 100px rgba(10,10,10,.22)}
@@ -155,18 +156,6 @@ form{display:grid;gap:18px;margin-top:28px}
 .verification-technical-intro{margin:12px 0 0;font-size:14px}
 .verification-technical .verify-list{margin-top:18px}
 .verification-technical[open] summary{color:#1d4ed8}
-.completion{text-align:center}
-.completion .success-mark{margin-inline:auto}
-.completion .eyebrow{margin:18px 0 10px}
-.completion h1,.completion h2{margin:0;font:700 clamp(36px,7vw,58px)/.98 'Inter Tight',sans-serif;letter-spacing:-.045em}
-.completion p{color:var(--muted)}
-.completion .completion-lead{margin:18px 0 0;font-size:16px;line-height:1.6}
-.completion-summary{margin-top:24px;border-radius:var(--radius-ui);background:#f6f8fb;padding:18px 20px;text-align:left}
-.completion-summary p{margin:0;font-size:14px;line-height:1.55}
-.completion-summary p+p{margin-top:8px}
-.completion-summary .completion-summary-title{color:var(--ink);font-weight:700}
-.completion-summary .completion-note{font-size:13px}
-.completion .actions{flex-wrap:wrap;justify-content:center;margin-top:28px}
 
 .proposal-empty-main{display:grid;place-items:center}
 .proposal-empty-state{width:min(650px,100%);margin-inline:auto;background:transparent;border:0;box-shadow:none;text-align:center}
@@ -198,6 +187,7 @@ form{display:grid;gap:18px;margin-top:28px}
 .signature-inner{width:min(100% - 32px,1120px)}
 .signer-row{align-items:stretch;flex-direction:column;padding:20px}
 .signature-button{width:100%}
+.signer-actions{display:grid;grid-template-columns:1fr;width:100%}
 .acceptance-dialog{width:calc(100% - 20px);max-height:calc(100vh - 20px)}
 .dialog-shell{padding:28px 20px calc(24px + env(safe-area-inset-bottom))}
 .dialog-actions{flex-wrap:wrap}

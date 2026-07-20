@@ -353,39 +353,29 @@
         otp: data.get('otp'),
         consent: data.get('consent') === 'on',
       }, csrf, idempotency);
-      const mark = document.createElement('div');
-      mark.className = 'success-mark';
-      mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = '✓';
-      const eyebrow = document.createElement('p');
-      eyebrow.className = 'eyebrow';
-      eyebrow.textContent = isEnglish ? 'Proposal accepted successfully' : 'Proposta aceita com sucesso';
+      const completedSignature = document.createElement('div');
+      completedSignature.className = 'signature-inner signature-complete';
+      const heading = document.createElement('div');
+      heading.className = 'signature-heading';
       const title = document.createElement('h2');
-      title.textContent = isEnglish ? 'Acceptance recorded' : 'Aceite registrado';
+      title.id = 'acceptance-title';
+      title.textContent = isEnglish ? 'Signature' : 'Assinatura';
       const lead = document.createElement('p');
-      lead.className = 'completion-lead';
       lead.textContent = isEnglish
-        ? 'Thank you for confirming this proposal. Your acceptance has been securely recorded and is now part of this document’s audit trail.'
-        : 'Obrigado por confirmar esta proposta. Seu aceite foi registrado com segurança e passou a fazer parte do histórico deste documento.';
-      const summary = document.createElement('div');
-      summary.className = 'completion-summary';
-      const summaryTitle = document.createElement('p');
-      summaryTitle.className = 'completion-summary-title';
-      summaryTitle.textContent = isEnglish ? 'Next steps' : 'Próximos passos';
-      const summaryText = document.createElement('p');
-      summaryText.textContent = isEnglish
-        ? 'The final copy includes the acceptance details and remains available for download and validation.'
-        : 'A cópia final reúne os dados do aceite e fica disponível para download e validação.';
-      const deliveryNote = document.createElement('p');
-      deliveryNote.className = 'completion-note';
-      deliveryNote.textContent = isEnglish
-        ? 'Even if email delivery is delayed or fails, the acceptance remains valid and recorded.'
-        : 'Mesmo que a entrega por e-mail atrase ou falhe, o aceite continua válido e registrado.';
-      summary.append(summaryTitle, summaryText, deliveryNote);
-      const completion = document.createElement('div');
-      completion.className = 'gate-card completion';
-      const actions = document.createElement('div');
-      actions.className = 'actions';
+        ? 'This proposal has been securely accepted and recorded.'
+        : 'Esta proposta foi aceita e registrada com segurança.';
+      heading.append(title, lead);
+      const signerRow = document.createElement('div');
+      signerRow.className = 'signer-row';
+      const signerInfo = document.createElement('div');
+      signerInfo.className = 'signer-info';
+      const signerName = document.createElement('strong');
+      signerName.textContent = data.get('name');
+      const signerEmail = document.createElement('span');
+      signerEmail.textContent = emailInput.value;
+      signerInfo.append(signerName, signerEmail);
+      const signerActions = document.createElement('div');
+      signerActions.className = 'signer-actions';
       const verify = document.createElement('a');
       verify.className = 'button-secondary';
       verify.href = payload.verify_url;
@@ -394,10 +384,11 @@
       download.className = 'button-primary';
       download.href = payload.download_url;
       download.textContent = isEnglish ? 'Download final copy' : 'Baixar cópia final';
-      actions.append(verify, download);
-      completion.append(mark, eyebrow, title, lead, summary, actions);
+      signerActions.append(verify, download);
+      signerRow.append(signerInfo, signerActions);
+      completedSignature.append(heading, signerRow);
       if (dialog.open) dialog.close();
-      flow.replaceChildren(completion);
+      flow.replaceChildren(completedSignature);
       flow.tabIndex = -1;
       flow.focus();
     } catch (error) {
