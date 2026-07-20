@@ -125,7 +125,7 @@ test('hides internal version and currency metadata from the proposal cover', asy
   assert.doesNotMatch(css, /\.document-meta/);
 });
 
-test('opens a clean four-step acceptance dialog from the proposal signature area', async () => {
+test('opens a clean three-step email acceptance dialog from the proposal signature area', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
   const css = await read('src/input.css');
@@ -133,8 +133,8 @@ test('opens a clean four-step acceptance dialog from the proposal signature area
   assert.match(template, /proposal-signature/);
   assert.match(template, /data-e7-open-dialog/);
   assert.match(template, /<dialog[^>]+acceptance-dialog/);
-  assert.equal((template.match(/data-e7-step=/g) || []).length, 4);
-  assert.doesNotMatch(template, /data-e7-step="5"/);
+  assert.equal((template.match(/data-e7-step=/g) || []).length, 3);
+  assert.doesNotMatch(template, /data-e7-step="4"/);
   assert.doesNotMatch(template, /acceptance-card/);
   assert.match(script, /showModal\(\)/);
   assert.match(script, /data-e7-next-step/);
@@ -144,33 +144,30 @@ test('opens a clean four-step acceptance dialog from the proposal signature area
   assert.match(css, /\.proposal-signature/);
 });
 
-test('collects both contacts with configured values locked before the signer chooses the OTP channel', async () => {
+test('temporarily offers email only and keeps SMS out of the public proposal flow', async () => {
   const template = await read('proposal.php');
   const script = await read('assets/js/proposal.js');
   const functions = await read('functions.php');
-  const packageJson = JSON.parse(await read('package.json'));
 
-  assert.match(template, /name="otp_channel"[^>]+value="sms"/);
-  assert.match(template, /name="otp_channel"[^>]+value="email"/);
-  assert.match(template, /data-e7-phone-contact/);
+  assert.doesNotMatch(template, /name="otp_channel"/);
+  assert.doesNotMatch(template, /value="sms"|>SMS</);
+  assert.doesNotMatch(template, /data-e7-phone-contact/);
+  assert.doesNotMatch(template, /name="otp_phone"/);
   assert.match(template, /data-e7-email-contact/);
-  assert.match(template, /name="otp_phone"[^>]+value="<\?php echo esc_attr\(\$client_phone\); \?>"/);
   assert.match(template, /name="otp_email"[^>]+value="<\?php echo esc_attr\(\$client_email\); \?>"/);
-  assert.match(template, /\$client_phone !== '' \? 'readonly' : ''/);
   assert.match(template, /\$client_email !== '' \? 'readonly' : ''/);
-  assert.match(template, /class="otp-method-list"/);
-  assert.doesNotMatch(template, /otp-method-grid/);
-  assert.match(template, />Método</);
+  assert.doesNotMatch(template, /class="otp-method-list"/);
+  assert.doesNotMatch(template, />Método</);
   assert.match(template, />Código</);
   assert.doesNotMatch(template, />Contato</);
-  assert.match(script, /channel:\s*selectedChannel/);
-  assert.match(script, /destination:\s*selectedDestination/);
+  assert.match(script, /channel:\s*'email'/);
+  assert.match(script, /destination:\s*emailInput\.value/);
   assert.match(script, /email:\s*emailInput\.value/);
-  assert.match(script, /phone:\s*normalizedPhone/);
+  assert.match(script, /phone:\s*''/);
+  assert.doesNotMatch(script, /phoneInput|phonePicker|normalizedPhone|selectedChannel/);
   assert.match(script, /\/otp\/verify/);
   assert.match(script, /data-e7-resend-otp/);
-  assert.match(functions, /intl-tel-input/);
-  assert.ok(packageJson.dependencies['intl-tel-input']);
+  assert.doesNotMatch(functions, /wp_enqueue_(?:style|script)\('e7-intl-tel-input'/);
 });
 
 test('connects the signature area to the institutional design with friendly progress', async () => {
@@ -183,7 +180,7 @@ test('connects the signature area to the institutional design with friendly prog
   assert.match(template, /role="progressbar"/);
   assert.match(template, /data-e7-progress-bar/);
   assert.match(template, />Dados</);
-  assert.match(template, />Método</);
+  assert.doesNotMatch(template, />Método</);
   assert.match(template, />Código</);
   assert.match(template, />Confirma(?:ç|&ccedil;)ão</);
   assert.doesNotMatch(template, />Contato</);

@@ -17,7 +17,6 @@ $valid_until_date = $valid_until_timestamp === false ? '' : wp_date('d/m/Y', $va
 $client_name = (string) ($view['settings']['client_name'] ?? '');
 $client_company = (string) ($view['settings']['client_company'] ?? '');
 $client_email = (string) ($view['settings']['client_email'] ?? '');
-$client_phone = (string) ($view['settings']['client_phone'] ?? '');
 $accepted_signer_name = is_array($acceptance) ? (string) ($acceptance['acceptance']['signer_name'] ?? $client_name) : '';
 $accepted_signer_email = is_array($acceptance) ? (string) ($acceptance['acceptance']['signer_email'] ?? $client_email) : '';
 $main_site_url = network_home_url('/');
@@ -83,10 +82,10 @@ $main_site_url = network_home_url('/');
                 <dialog class="acceptance-dialog" aria-label="<?php echo esc_attr($pt ? 'Aceite eletrônico' : 'Electronic acceptance'); ?>" data-e7-dialog>
                     <div class="dialog-shell">
                         <button class="dialog-close" type="button" data-e7-close-dialog aria-label="<?php echo esc_attr($pt ? 'Fechar' : 'Close'); ?>">×</button>
-                        <div class="dialog-progress" role="progressbar" aria-label="<?php echo esc_attr($pt ? 'Progresso do aceite' : 'Acceptance progress'); ?>" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-valuetext="<?php echo esc_attr($pt ? 'Dados' : 'Details'); ?>" data-e7-progress>
+                        <div class="dialog-progress" role="progressbar" aria-label="<?php echo esc_attr($pt ? 'Progresso do aceite' : 'Acceptance progress'); ?>" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-valuetext="<?php echo esc_attr($pt ? 'Dados' : 'Details'); ?>" data-e7-progress>
                             <div class="dialog-progress-track" aria-hidden="true"><span data-e7-progress-bar></span></div>
                             <div class="dialog-progress-labels" aria-hidden="true">
-                                <?php if ($pt) : ?><span class="is-active">Dados</span><span>Método</span><span>Código</span><span>Confirmação</span><?php else : ?><span class="is-active">Details</span><span>Method</span><span>Code</span><span>Confirmation</span><?php endif; ?>
+                                <?php if ($pt) : ?><span class="is-active">Dados</span><span>Código</span><span>Confirmação</span><?php else : ?><span class="is-active">Details</span><span>Code</span><span>Confirmation</span><?php endif; ?>
                             </div>
                         </div>
                         <form data-e7-acceptance-form>
@@ -100,24 +99,9 @@ $main_site_url = network_home_url('/');
                                     <label for="e7-otp-email"><?php echo esc_html($pt ? 'E-mail' : 'Email'); ?></label>
                                     <input id="e7-otp-email" name="otp_email" type="email" autocomplete="email" value="<?php echo esc_attr($client_email); ?>" <?php echo $client_email !== '' ? 'readonly' : ''; ?> required>
                                 </div>
-                                <div data-e7-phone-contact>
-                                    <label for="e7-otp-phone"><?php echo esc_html($pt ? 'Número de celular' : 'Mobile number'); ?></label>
-                                    <input id="e7-otp-phone" name="otp_phone" type="tel" autocomplete="tel" inputmode="tel" value="<?php echo esc_attr($client_phone); ?>" <?php echo $client_phone !== '' ? 'readonly' : ''; ?> required>
-                                </div>
                             </div>
                         </section>
                         <section class="dialog-step" data-e7-step="2" hidden>
-                            <h2><?php echo esc_html($pt ? 'Escolha como receber' : 'Choose how to receive it'); ?></h2>
-                            <p><?php echo esc_html($pt ? 'Selecione um método para receber seu código de uso único.' : 'Select a method to receive your one-time code.'); ?></p>
-                            <fieldset class="otp-methods">
-                                <legend class="screen-reader-text"><?php echo esc_html($pt ? 'Método de verificação' : 'Verification method'); ?></legend>
-                                <div class="otp-method-list">
-                                    <label class="otp-method"><input type="radio" name="otp_channel" value="sms" required><span><strong>SMS</strong><small><?php echo esc_html($pt ? 'Receber no celular' : 'Receive on your phone'); ?></small></span></label>
-                                    <label class="otp-method"><input type="radio" name="otp_channel" value="email" required><span><strong><?php echo esc_html($pt ? 'E-mail' : 'Email'); ?></strong><small><?php echo esc_html($pt ? 'Receber por e-mail' : 'Receive by email'); ?></small></span></label>
-                                </div>
-                            </fieldset>
-                        </section>
-                        <section class="dialog-step" data-e7-step="3" hidden>
                             <h2><?php echo esc_html($pt ? 'Informe o código' : 'Enter the code'); ?></h2>
                             <p class="otp-sent-to"><?php echo esc_html($pt ? 'Enviamos um código de seis dígitos para' : 'We sent a six-digit code to'); ?> <strong data-e7-masked-destination></strong>.</p>
                             <fieldset class="otp-code-fieldset">
@@ -134,7 +118,7 @@ $main_site_url = network_home_url('/');
                             </fieldset>
                             <button class="otp-resend" type="button" data-e7-resend-otp><?php echo esc_html($pt ? 'Reenviar código' : 'Resend code'); ?></button>
                         </section>
-                        <section class="dialog-step" data-e7-step="4" hidden>
+                        <section class="dialog-step" data-e7-step="3" hidden>
                             <h2><?php echo esc_html($pt ? 'Revise e aceite' : 'Review and accept'); ?></h2>
                             <p><?php echo esc_html($pt ? 'Confirme que leu o conteúdo antes de concluir.' : 'Confirm that you have read the content before completing.'); ?></p>
                             <label class="consent"><input name="consent" type="checkbox" required><span><?php echo esc_html($pt ? 'Li e aceito esta proposta e concordo com o uso de registros e assinaturas eletrônicas.' : 'I have read and accept this proposal and agree to the use of electronic records and signatures.'); ?></span></label>

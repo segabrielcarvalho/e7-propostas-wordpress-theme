@@ -8,10 +8,6 @@ const fillMissingSignerContacts = async (page) => {
   if (await page.locator('#e7-otp-email').isEditable()) {
     await page.locator('#e7-otp-email').fill('signer@example.com');
   }
-  if (await page.locator('#e7-otp-phone').isEditable()) {
-    const language = await page.locator('html').getAttribute('lang');
-    await page.locator('#e7-otp-phone').fill(language?.startsWith('en') ? '851234567' : '11999999999');
-  }
 };
 
 test('legal pages and public validation are reachable', async ({ page }) => {
@@ -62,17 +58,16 @@ test('six OTP boxes combine typing and paste into the single API value', async (
       <dialog data-e7-dialog open>
         <button data-e7-close-dialog type="button">Close</button>
         <div data-e7-progress><span data-e7-progress-bar></span></div>
-        <div class="dialog-progress-labels"><span>Dados</span><span>Método</span><span>Código</span><span>Confirmação</span></div>
+        <div class="dialog-progress-labels"><span>Dados</span><span>Código</span><span>Confirmação</span></div>
         <form data-e7-acceptance-form>
-          <section data-e7-step="1"><input name="otp_phone"><input name="otp_email"></section>
-          <section data-e7-step="2"></section>
-          <section data-e7-step="3">
+          <section data-e7-step="1"><input name="otp_email"></section>
+          <section data-e7-step="2">
             <strong data-e7-masked-destination></strong>
             <input data-e7-otp-digit><input data-e7-otp-digit><input data-e7-otp-digit>
             <input data-e7-otp-digit><input data-e7-otp-digit><input data-e7-otp-digit>
             <input name="otp" type="hidden">
           </section>
-          <section data-e7-step="4"></section>
+          <section data-e7-step="3"></section>
           <p data-e7-status></p>
           <button data-e7-resend-otp type="button">Resend</button>
           <button data-e7-prev-step type="button">Previous</button>
@@ -151,11 +146,12 @@ test('private gate is generic, responsive and unlocks only with the proposal pas
   await page.locator('[data-e7-next-step]').click();
   await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuenow', '2');
   await expect(page.locator('[data-e7-step="2"]')).toBeVisible();
-  await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuemax', '4');
-  await expect(page.locator('input[name="otp_channel"]')).toHaveCount(2);
+  await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuemax', '3');
+  await expect(page.locator('input[name="otp_channel"]')).toHaveCount(0);
+  await expect(page.locator('[data-e7-phone-contact]')).toHaveCount(0);
 });
 
-test('chooses email, validates the code and reaches confirmation without accepting', async ({ page }) => {
+test('sends email, validates the code and reaches confirmation without accepting', async ({ page }) => {
   test.skip(!code || !password, 'Set E7_PROPOSAL_TEST_CODE and E7_PROPOSAL_TEST_PASSWORD.');
   let sendCount = 0;
   await page.route('**/wp-json/e7-propostas/v1/otp/send', (route) => {
@@ -178,16 +174,14 @@ test('chooses email, validates the code and reaches confirmation without accepti
   await page.locator('[data-e7-open-dialog]').click();
   await fillMissingSignerContacts(page);
   await page.locator('[data-e7-next-step]').click();
-  await page.locator('input[name="otp_channel"][value="email"]').check();
-  await page.locator('[data-e7-next-step]').click();
 
-  await expect(page.locator('[data-e7-step="3"]')).toBeVisible();
+  await expect(page.locator('[data-e7-step="2"]')).toBeVisible();
   await expect(page.locator('[data-e7-masked-destination]')).toContainText('@');
   expect(sendCount).toBe(1);
 
   await page.locator('[data-e7-prev-step]').click();
   await page.locator('[data-e7-next-step]').click();
-  await expect(page.locator('[data-e7-step="3"]')).toBeVisible();
+  await expect(page.locator('[data-e7-step="2"]')).toBeVisible();
   expect(sendCount).toBe(1);
 
   const resendButton = page.locator('[data-e7-resend-otp]');
@@ -200,20 +194,19 @@ test('chooses email, validates the code and reaches confirmation without accepti
     await otpDigits.nth(index).fill(digit);
   }
   await page.locator('[data-e7-next-step]').click();
-  await expect(page.locator('[data-e7-step="4"]')).toBeVisible();
-  await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuenow', '4');
+  await expect(page.locator('[data-e7-step="3"]')).toBeVisible();
+  await expect(page.locator('[data-e7-progress]')).toHaveAttribute('aria-valuenow', '3');
 });
 
-test('shows an international country selector for the SMS contact', async ({ page }) => {
+test('does not expose SMS or phone fields while the channel is disabled', async ({ page }) => {
   test.skip(!code || !password, 'Set E7_PROPOSAL_TEST_CODE and E7_PROPOSAL_TEST_PASSWORD.');
   await page.goto(`/p/${code}/`);
   await page.locator('#proposal-password').fill(password);
   await page.getByRole('button', { name: /Continue|Continuar/ }).click();
   await page.locator('[data-e7-open-dialog]').click();
 
-  await expect(page.locator('[data-e7-phone-contact] .iti')).toBeVisible();
-  const language = await page.locator('html').getAttribute('lang');
-  await expect(page.locator('.iti__selected-country')).toHaveAttribute('title', language?.startsWith('en') ? /Ireland/ : /Brazil|Brasil/);
-  await expect(page.locator('#e7-otp-phone')).toHaveAttribute('required', '');
+  await expect(page.locator('[data-e7-phone-contact]')).toHaveCount(0);
+  await expect(page.locator('#e7-otp-phone')).toHaveCount(0);
+  await expect(page.getByText('SMS', { exact: true })).toHaveCount(0);
   await expect(page.locator('#e7-otp-email')).toHaveAttribute('required', '');
 });

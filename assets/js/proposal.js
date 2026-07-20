@@ -23,7 +23,7 @@
       e7_otp_limit: ['Limite de reenvios atingido. Tente novamente mais tarde.', 'Resend limit reached. Try again later.'],
       e7_delivery_unavailable: ['Não foi possível enviar o código. Tente novamente.', 'The code could not be sent. Try again.'],
       e7_otp_destination: ['Informe um e-mail ou telefone válido.', 'Enter a valid email address or phone number.'],
-      e7_acceptance_fields: ['Confira nome, e-mail, telefone e consentimento.', 'Check the name, email, phone number, and consent.'],
+      e7_acceptance_fields: ['Confira nome, e-mail e consentimento.', 'Check the name, email, and consent.'],
       e7_otp_required: ['Solicite o código antes de aceitar.', 'Request the code before accepting.'],
       e7_otp_invalid: ['Código inválido ou expirado.', 'The code is invalid or expired.'],
       e7_already_accepted: ['Esta proposta não está mais disponível para aceite.', 'This proposal is no longer available for acceptance.'],
@@ -70,8 +70,6 @@
   const nextButton = flow.querySelector('[data-e7-next-step]');
   const prevButton = flow.querySelector('[data-e7-prev-step]');
   const submitButton = form.querySelector('button[type="submit"]');
-  const methodInputs = [...form.querySelectorAll('input[name="otp_channel"]')];
-  const phoneInput = form.elements.otp_phone;
   const emailInput = form.elements.otp_email;
   const otpInput = form.elements.otp;
   const otpDigitInputs = [...form.querySelectorAll('[data-e7-otp-digit]')];
@@ -85,21 +83,9 @@
   const csrf = flow.dataset.csrf;
   const isEnglish = flow.dataset.locale === 'en_IE';
   let currentStep = 0;
-  let selectedChannel = '';
-  let selectedDestination = '';
-  let normalizedPhone = '';
   let otpRequested = false;
   let otpValidated = false;
   let sentFingerprint = '';
-  const phonePicker = typeof globalThis.intlTelInput === 'function'
-    ? globalThis.intlTelInput(phoneInput, {
-      initialCountry: isEnglish ? 'ie' : 'br',
-      allowDropdown: !phoneInput.readOnly,
-      separateDialCode: true,
-      strictMode: true,
-      useFullscreenPopup: globalThis.matchMedia?.('(max-width: 700px)').matches ?? false,
-    })
-    : null;
 
   const syncOtpValue = () => {
     otpInput.value = otpDigitInputs.map((input) => input.value).join('');
@@ -127,19 +113,15 @@
     otpRequested = false;
     otpValidated = false;
     sentFingerprint = '';
-    selectedDestination = '';
     clearOtpValue();
   };
 
-  const maskDestination = (destination, channel) => {
-    if (channel === 'email') {
-      const [local, domain] = destination.split('@');
-      return `${local.slice(0, 1)}***@${domain}`;
-    }
-    return `${destination.slice(0, Math.min(3, destination.length - 4))}••••${destination.slice(-4)}`;
+  const maskDestination = (destination) => {
+    const [local, domain] = destination.split('@');
+    return `${local.slice(0, 1)}***@${domain}`;
   };
 
-  const currentFingerprint = () => `${selectedChannel}|${selectedDestination}`;
+  const currentFingerprint = () => `email|${emailInput.value}`;
 
   const validateContacts = () => {
     emailInput.value = emailInput.value.trim();
@@ -148,19 +130,7 @@
       return false;
     }
 
-    const fallbackPhone = phoneInput.value.replace(/[\s()-]/g, '');
-    const validPhone = phonePicker ? phonePicker.isValidNumber() === true : /^\+[1-9]\d{7,14}$/.test(fallbackPhone);
-    phoneInput.setCustomValidity(validPhone ? '' : (isEnglish ? 'Enter a valid international phone number.' : 'Informe um telefone internacional válido.'));
-    if (!validPhone) {
-      phoneInput.reportValidity();
-      return false;
-    }
-    normalizedPhone = phonePicker ? phonePicker.getNumber() : fallbackPhone;
     return true;
-  };
-
-  const selectDestination = () => {
-    selectedDestination = selectedChannel === 'email' ? emailInput.value : normalizedPhone;
   };
 
   const showStep = (index, moveFocus = true) => {
@@ -200,17 +170,9 @@
     if (event.target === dialog) dialog.close();
   });
 
-  methodInputs.forEach((input) => input.addEventListener('change', () => {
-    if (selectedChannel !== input.value) resetOtpState();
-    selectedChannel = input.value;
-  }));
-  [phoneInput, emailInput].forEach((input) => input.addEventListener('input', () => {
+  emailInput.addEventListener('input', () => {
     if (sentFingerprint !== '') resetOtpState();
-    input.setCustomValidity('');
-  }));
-  phoneInput.addEventListener('countrychange', () => {
-    if (sentFingerprint !== '') resetOtpState();
-    phoneInput.setCustomValidity('');
+    emailInput.setCustomValidity('');
   });
   otpDigitInputs.forEach((input, index) => {
     input.addEventListener('focus', () => input.select());
@@ -261,15 +223,15 @@
     status.textContent = isEnglish ? 'Sending code…' : 'Enviando código…';
     try {
       const payload = await request(`${restUrl}/otp/send`, {
-        channel: selectedChannel,
-        destination: selectedDestination,
+        channel: 'email',
+        destination: emailInput.value,
       }, csrf);
       otpRequested = true;
       otpValidated = false;
       sentFingerprint = currentFingerprint();
       clearOtpValue();
-      maskedDestination.textContent = maskDestination(selectedDestination, selectedChannel);
-      if (advanceToCode) showStep(2);
+      maskedDestination.textContent = maskDestination(emailInput.value);
+      if (advanceToCode) showStep(1);
       status.textContent = payload.dev_code
         ? `${isEnglish ? 'Local environment — code' : 'Ambiente local — código'}: ${payload.dev_code}`
         : (isEnglish ? 'Code sent. Check the contact entered.' : 'Código enviado. Verifique o contato informado.');
@@ -294,7 +256,7 @@
     try {
       await request(`${restUrl}/otp/verify`, { otp: otpInput.value }, csrf);
       otpValidated = true;
-      showStep(3);
+      showStep(2);
     } catch (error) {
       otpValidated = false;
       status.textContent = localizedError(error, isEnglish, 'verify');
@@ -308,18 +270,15 @@
 
     if (currentStep === 0) {
       if (!validateContacts()) return;
-    } else if (currentStep === 1) {
-      selectedChannel = form.elements.otp_channel.value;
-      selectDestination();
       if (otpRequested && sentFingerprint === currentFingerprint()) {
-        showStep(2);
+        showStep(1);
         return;
       }
       await sendOtp(true);
       return;
-    } else if (currentStep === 2) {
+    } else if (currentStep === 1) {
       if (otpValidated) {
-        showStep(3);
+        showStep(2);
       } else {
         await verifyOtp();
       }
@@ -349,7 +308,7 @@
         role: '',
         company: data.get('company'),
         email: emailInput.value,
-        phone: normalizedPhone,
+        phone: '',
         otp: data.get('otp'),
         consent: data.get('consent') === 'on',
       }, csrf, idempotency);
