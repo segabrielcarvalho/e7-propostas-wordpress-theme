@@ -24,7 +24,7 @@ const flowFixture = ({ irish, otp }) => `
     <button data-e7-open-dialog type="button">Open</button>
     <dialog class="acceptance-dialog ${irish ? 'acceptance-dialog-wide' : ''}" data-e7-dialog>
       <div class="dialog-shell">
-        <button class="dialog-close" data-e7-close-dialog type="button">Close</button>
+        <button class="dialog-close" data-e7-close-dialog type="button" aria-label="Close">×</button>
         <div class="dialog-progress" data-e7-progress>
           <div class="dialog-progress-track"><span data-e7-progress-bar></span></div>
           <div class="dialog-progress-labels">${(irish

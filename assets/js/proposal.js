@@ -137,12 +137,15 @@
     return e164Pattern.test(number) && (!picker || picker.isValidNumber());
   };
 
-  const setRequired = (container, names, required) => {
-    names.forEach((name) => {
-      const input = form.elements[name];
-      if (input) input.required = required;
+  const syncConditionalFields = (container, active, requiredNames) => {
+    if (!container) return;
+    const required = new Set(requiredNames);
+    container.querySelectorAll('input, select, textarea').forEach((input) => {
+      input.disabled = !active;
+      input.required = active && required.has(input.name);
+      if (!active) input.setCustomValidity('');
     });
-    if (container) container.hidden = !required;
+    container.hidden = !active;
   };
 
   const vatToggle = form.elements.vat_registered;
@@ -155,9 +158,9 @@
   const registration = form.elements.registration_number;
 
   const syncConditionals = () => {
-    if (vatToggle) setRequired(vatFields, ['vat_number'], vatToggle.checked);
-    if (billingSame) setRequired(billingFields, ['billing_line1', 'billing_city', 'billing_eircode'], !billingSame.checked);
-    if (payerSame) setRequired(payerFields, ['payer_legal_name'], !payerSame.checked);
+    if (vatToggle) syncConditionalFields(vatFields, vatToggle.checked, ['vat_number']);
+    if (billingSame) syncConditionalFields(billingFields, !billingSame.checked, ['billing_line1', 'billing_city', 'billing_eircode']);
+    if (payerSame) syncConditionalFields(payerFields, !payerSame.checked, ['payer_legal_name']);
     if (businessType && registration) registration.required = businessType.value === 'company';
   };
   [vatToggle, billingSame, payerSame, businessType].filter(Boolean)
@@ -432,8 +435,8 @@
   };
 
   nextButton.addEventListener('click', async () => {
-    if (!validateCurrentStepFormats()) return;
     if (invalidFieldInCurrentStep()) return;
+    if (!validateCurrentStepFormats()) return;
     if (!otpEnabled) {
       showStep(currentStep + 1);
       return;
