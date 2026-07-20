@@ -22,42 +22,55 @@ const flowFixture = ({ irish, otp }) => `
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <section data-e7-flow data-e7-otp-enabled="${otp ? '1' : '0'}" data-e7-irish-flow="${irish ? '1' : '0'}" data-locale="${irish ? 'en_IE' : 'pt_BR'}" data-rest-url="/api" data-csrf="csrf">
     <button data-e7-open-dialog type="button">Open</button>
-    <dialog data-e7-dialog><button data-e7-close-dialog type="button">Close</button>
-      <div data-e7-progress><span data-e7-progress-bar></span></div>
-      <div class="dialog-progress-labels">${(irish
-        ? (otp ? ['Responsible', 'Company', 'Billing & use', 'Code', 'Review'] : ['Responsible', 'Company', 'Billing & use', 'Review'])
-        : (otp ? ['Details', 'Code', 'Confirmation'] : ['Details', 'Confirmation']))
-        .map((label) => `<span>${label}</span>`).join('')}</div>
-      <form data-e7-acceptance-form>
-        <section data-e7-step data-e7-step-kind="details"><h2 tabindex="-1">${irish ? 'Responsible' : 'Details'}</h2>
-          <input name="name" required value="Aoife Murphy"><input name="responsible_role" ${irish ? 'required' : ''} value="Director">
-          <input name="email" type="email" required value="aoife@example.ie"><input class="e7-phone-input" name="phone" ${irish || !otp ? 'required' : ''} value="+353871234567">
-          ${irish ? '' : '<input name="company" value="">'}
-        </section>
-        ${irish ? `<section data-e7-step data-e7-step-kind="company" hidden><h2 tabindex="-1">Company</h2>
-          <select name="business_type"><option value="company" selected>Company</option><option value="sole_trader">Sole trader</option></select>
-          <input name="legal_name" required value="Example Limited"><input name="trading_name" value="">
-          <input name="registration_number" required value="123456"><input name="vat_registered" type="checkbox">
-          <div data-e7-vat-fields hidden><input name="vat_number"></div>
-          <input name="registered_line1" required value="1 Main Street"><input name="registered_line2" value="">
-          <input name="registered_city" required value="Cork"><input name="registered_county" value="">
-          <input name="registered_eircode" required value="T12 AC11"><input name="registered_country_code" value="IE">
-        </section>
-        <section data-e7-step data-e7-step-kind="billing" hidden><h2 tabindex="-1">Billing & use</h2>
-          <input name="finance_email" type="email"><input name="purchase_order">
-          <input name="billing_same_as_registered" type="checkbox" checked>
-          <div data-e7-billing-address hidden><input name="billing_line1"><input name="billing_line2"><input name="billing_city"><input name="billing_county"><input name="billing_eircode"><input name="billing_country_code" value="IE"></div>
-          <input name="payer_same_as_business" type="checkbox" checked><div data-e7-payer-fields hidden><input name="payer_legal_name"></div>
-          <input name="service_city" required value="Cork"><input name="domain"><input class="e7-phone-input" name="whatsapp">
-        </section>` : ''}
-        ${otp ? otpMarkup : ''}
-        <section data-e7-step data-e7-step-kind="review" hidden><h2 tabindex="-1">${irish ? 'Review' : 'Confirmation'}</h2>
-          <dl data-e7-review-summary></dl>
-          ${irish ? '<input name="confirmation_b2b" type="checkbox" required checked><input name="confirmation_ireland" type="checkbox" required checked><input name="confirmation_accuracy" type="checkbox" required checked>' : ''}
-          <input name="consent" type="checkbox" required checked>
-        </section>
-        <p data-e7-status></p><button data-e7-prev-step type="button">Back</button><button data-e7-next-step type="button">Next</button><button type="submit">Accept</button>
-      </form>
+    <dialog class="acceptance-dialog ${irish ? 'acceptance-dialog-wide' : ''}" data-e7-dialog>
+      <div class="dialog-shell">
+        <button class="dialog-close" data-e7-close-dialog type="button">Close</button>
+        <div class="dialog-progress" data-e7-progress>
+          <div class="dialog-progress-track"><span data-e7-progress-bar></span></div>
+          <div class="dialog-progress-labels">${(irish
+            ? (otp ? ['Responsible', 'Company', 'Billing & use', 'Code', 'Review'] : ['Responsible', 'Company', 'Billing & use', 'Review'])
+            : (otp ? ['Details', 'Code', 'Confirmation'] : ['Details', 'Confirmation']))
+            .map((label) => `<span>${label}</span>`).join('')}</div>
+        </div>
+        <form data-e7-acceptance-form novalidate>
+          <section class="dialog-step" data-e7-step data-e7-step-kind="details"><h2 tabindex="-1">${irish ? 'Responsible' : 'Details'}</h2>
+            <div class="dialog-fields field-grid">
+              <label>Name<input name="name" required value="Aoife Murphy"></label><label>Role<input name="responsible_role" ${irish ? 'required' : ''} value="Director"></label>
+              <label>Email<input name="email" type="email" required value="aoife@example.ie"></label><label>Phone<input class="e7-phone-input" name="phone" ${irish || !otp ? 'required' : ''} value="+353871234567"></label>
+              ${irish ? '' : '<label class="field-span">Company<input name="company" value=""></label>'}
+            </div>
+          </section>
+          ${irish ? `<section class="dialog-step" data-e7-step data-e7-step-kind="company" hidden><h2 tabindex="-1">Company</h2>
+            <div class="dialog-fields field-grid">
+              <label>Type<select name="business_type"><option value="company" selected>Company</option><option value="sole_trader">Sole trader</option></select></label>
+              <label>Legal name<input name="legal_name" required value="Example Limited"></label><label>Trading name<input name="trading_name" value=""></label>
+              <label>Registration<input name="registration_number" required value="123456"></label><label class="check-row"><input name="vat_registered" type="checkbox">VAT registered</label>
+              <div class="field-span" data-e7-vat-fields hidden><label>VAT number<input name="vat_number"></label></div>
+              <label class="field-span">Line 1<input name="registered_line1" required value="1 Main Street"></label><label class="field-span">Line 2<input name="registered_line2" value=""></label>
+              <label>City<input name="registered_city" required value="Cork"></label><label>County<input name="registered_county" value=""></label>
+              <label>Eircode<input name="registered_eircode" required value="T12 AC11"></label><input name="registered_country_code" type="hidden" value="IE">
+            </div>
+          </section>
+          <section class="dialog-step" data-e7-step data-e7-step-kind="billing" hidden><h2 tabindex="-1">Billing & use</h2>
+            <div class="dialog-fields field-grid">
+              <label>Finance email<input name="finance_email" type="email"></label><label>PO<input name="purchase_order"></label>
+              <label class="check-row"><input name="billing_same_as_registered" type="checkbox" checked>Same billing address</label>
+              <div class="conditional-fields field-span" data-e7-billing-address hidden><div class="field-grid">
+                <label class="field-span">Line 1<input name="billing_line1"></label><label class="field-span">Line 2<input name="billing_line2"></label><label>City<input name="billing_city"></label><label>County<input name="billing_county"></label><label>Eircode<input name="billing_eircode"></label><input name="billing_country_code" type="hidden" value="IE">
+              </div></div>
+              <label class="check-row"><input name="payer_same_as_business" type="checkbox" checked>Same payer</label><div class="field-span" data-e7-payer-fields hidden><label>Payer<input name="payer_legal_name"></label></div>
+              <label>Service city<input name="service_city" required value="Cork"></label><label>Domain<input name="domain"></label><label class="field-span">WhatsApp<input class="e7-phone-input" name="whatsapp"></label>
+            </div>
+          </section>` : ''}
+          ${otp ? otpMarkup.replace('<section ', '<section class="dialog-step" ') : ''}
+          <section class="dialog-step" data-e7-step data-e7-step-kind="review" hidden><h2 tabindex="-1">${irish ? 'Review' : 'Confirmation'}</h2>
+            <dl data-e7-review-summary></dl>
+            ${irish ? '<input name="confirmation_b2b" type="checkbox" required checked><input name="confirmation_ireland" type="checkbox" required checked><input name="confirmation_accuracy" type="checkbox" required checked>' : ''}
+            <input name="consent" type="checkbox" required checked>
+          </section>
+          <p data-e7-status></p><div class="dialog-actions"><button data-e7-prev-step type="button">Back</button><button data-e7-next-step type="button">Next</button><button type="submit">Accept</button></div>
+        </form>
+      </div>
     </dialog>
   </section>`;
 
@@ -241,6 +254,75 @@ test('reveals only the Irish conditional fields that the signer activates', asyn
   await expect(page.locator('[data-e7-payer-fields]')).toBeVisible();
 });
 
+test('disables inactive Irish invoice fields and discards stale conditional errors', async ({ page }) => {
+  await installFlow(page, { irish: true, otp: false });
+  await continueFlow(page, 1);
+
+  const vatNumber = page.locator('[name="vat_number"]');
+  await expect(vatNumber).toBeDisabled();
+  await page.locator('[name="vat_registered"]').check();
+  await expect(vatNumber).toBeEnabled();
+  await expect(vatNumber).toHaveAttribute('required', '');
+  await vatNumber.evaluate((input) => input.setCustomValidity('stale VAT error'));
+  await page.locator('[name="vat_registered"]').uncheck();
+  await expect(vatNumber).toBeDisabled();
+  await expect(vatNumber).not.toHaveAttribute('required', '');
+  await expect(vatNumber).toHaveJSProperty('validationMessage', '');
+
+  await continueFlow(page, 1);
+  const billingLine1 = page.locator('[name="billing_line1"]');
+  const billingCity = page.locator('[name="billing_city"]');
+  const billingEircode = page.locator('[name="billing_eircode"]');
+  const payerName = page.locator('[name="payer_legal_name"]');
+  await expect(billingLine1).toBeDisabled();
+  await expect(payerName).toBeDisabled();
+
+  await page.locator('[name="billing_same_as_registered"]').uncheck();
+  await expect(billingLine1).toBeEnabled();
+  await expect(billingLine1).toHaveAttribute('required', '');
+  await billingLine1.fill('2 Finance Street');
+  await billingCity.fill('Dublin');
+  await billingEircode.fill('invalid');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(billingEircode).toBeFocused();
+  await expect(billingEircode).toHaveJSProperty('validationMessage', 'Enter a valid Irish Eircode.');
+
+  await page.locator('[name="billing_same_as_registered"]').check();
+  await expect(billingEircode).toBeDisabled();
+  await expect(billingEircode).not.toHaveAttribute('required', '');
+  await expect(billingEircode).toHaveJSProperty('validationMessage', '');
+
+  await page.locator('[name="payer_same_as_business"]').uncheck();
+  await expect(payerName).toBeEnabled();
+  await expect(payerName).toHaveAttribute('required', '');
+  await payerName.evaluate((input) => input.setCustomValidity('stale payer error'));
+  await page.locator('[name="payer_same_as_business"]').check();
+  await expect(payerName).toBeDisabled();
+  await expect(payerName).not.toHaveAttribute('required', '');
+  await expect(payerName).toHaveJSProperty('validationMessage', '');
+
+  await page.locator('[data-e7-next-step]').click();
+  await expect(page.locator('[data-e7-step-kind="review"]')).toBeVisible();
+  await page.locator('button[type="submit"]').click();
+  const payload = await page.evaluate(() => window.e7Requests.at(-1).body.business_profile);
+  expect(payload.billing_same_as_registered).toBe(true);
+  expect(payload.billing_address).toEqual(payload.registered_address);
+});
+
+test('reports required Irish company fields in visual order before format errors', async ({ page }) => {
+  await installFlow(page, { irish: true, otp: false });
+  await continueFlow(page, 1);
+
+  const legalName = page.locator('[name="legal_name"]');
+  await legalName.fill('');
+  await page.locator('[name="registration_number"]').fill('123456A');
+  await page.locator('[data-e7-next-step]').click();
+
+  await expect(page.locator('[data-e7-step-kind="company"]')).toBeVisible();
+  await expect(legalName).toBeFocused();
+  await expect(legalName).not.toHaveJSProperty('validationMessage', '');
+});
+
 test('matches phone requiredness to the backend policy without locking prefilled contacts', async ({ page }) => {
   for (const scenario of [
     { irish: false, otp: true, required: false },
@@ -330,6 +412,8 @@ test('keeps four and five-step progress plus international inputs inside 375px',
   await page.setViewportSize({ width: 375, height: 800 });
   for (const otp of [false, true]) {
     await installFlow(page, { irish: true, otp, useCss: true, useIntl: true });
+    await expect(page.locator('.acceptance-dialog > .dialog-shell > .dialog-progress')).toBeVisible();
+    await expect(page.locator('.dialog-step:not([hidden]) .field-grid .iti')).toBeVisible();
     const dimensions = await page.evaluate(() => {
       const dialog = document.querySelector('[data-e7-dialog]');
       const labels = document.querySelector('.dialog-progress-labels');
