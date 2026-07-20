@@ -30,7 +30,7 @@ const flowFixture = ({ irish, otp }) => `
       <form data-e7-acceptance-form>
         <section data-e7-step data-e7-step-kind="details"><h2 tabindex="-1">${irish ? 'Responsible' : 'Details'}</h2>
           <input name="name" required value="Aoife Murphy"><input name="responsible_role" ${irish ? 'required' : ''} value="Director">
-          <input name="email" type="email" required value="aoife@example.ie"><input name="phone" required value="+353871234567">
+          <input name="email" type="email" required value="aoife@example.ie"><input class="e7-phone-input" name="phone" ${irish || !otp ? 'required' : ''} value="+353871234567">
           ${irish ? '' : '<input name="company" value="">'}
         </section>
         ${irish ? `<section data-e7-step data-e7-step-kind="company" hidden><h2 tabindex="-1">Company</h2>
@@ -47,7 +47,7 @@ const flowFixture = ({ irish, otp }) => `
           <input name="billing_same_as_registered" type="checkbox" checked>
           <div data-e7-billing-address hidden><input name="billing_line1"><input name="billing_line2"><input name="billing_city"><input name="billing_county"><input name="billing_eircode"><input name="billing_country_code" value="IE"></div>
           <input name="payer_same_as_business" type="checkbox" checked><div data-e7-payer-fields hidden><input name="payer_legal_name"></div>
-          <input name="service_city" required value="Cork"><input name="domain"><input name="whatsapp">
+          <input name="service_city" required value="Cork"><input name="domain"><input class="e7-phone-input" name="whatsapp">
         </section>` : ''}
         ${otp ? otpMarkup : ''}
         <section data-e7-step data-e7-step-kind="review" hidden><h2 tabindex="-1">${irish ? 'Review' : 'Confirmation'}</h2>
@@ -72,6 +72,13 @@ const installFlow = async (page, options) => {
         : { ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     };
   });
+  if (options.useCss) {
+    await page.addStyleTag({ path: resolve('assets/vendor/intl-tel-input/css/intlTelInput.min.css') });
+    await page.addStyleTag({ path: resolve('assets/css/app.css') });
+  }
+  if (options.useIntl) {
+    await page.addScriptTag({ path: resolve('assets/vendor/intl-tel-input/js/intlTelInputWithUtils.min.js') });
+  }
   await page.addScriptTag({ path: resolve('assets/js/proposal.js') });
   await page.locator('[data-e7-open-dialog]').click();
 };
@@ -231,6 +238,119 @@ test('reveals only the Irish conditional fields that the signer activates', asyn
   await expect(page.locator('[data-e7-billing-address]')).toBeVisible();
   await page.locator('[name="payer_same_as_business"]').uncheck();
   await expect(page.locator('[data-e7-payer-fields]')).toBeVisible();
+});
+
+test('matches phone requiredness to the backend policy without locking prefilled contacts', async ({ page }) => {
+  for (const scenario of [
+    { irish: false, otp: true, required: false },
+    { irish: false, otp: false, required: true },
+    { irish: true, otp: true, required: true },
+    { irish: true, otp: false, required: true },
+  ]) {
+    await installFlow(page, scenario);
+    const phone = page.locator('[name="phone"]');
+    await expect(phone).toBeEditable();
+    if (scenario.required) await expect(phone).toHaveAttribute('required', '');
+    else await expect(phone).not.toHaveAttribute('required', '');
+    await expect(page.locator('[name="email"]')).toBeEditable();
+  }
+});
+
+test('validates and normalizes Irish invoice formats on their own fields before review', async ({ page }) => {
+  await installFlow(page, { irish: true, otp: false, useIntl: true });
+  await continueFlow(page, 1);
+
+  const registration = page.locator('[name="registration_number"]');
+  await registration.fill('123456A');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(page.locator('[data-e7-step-kind="company"]')).toBeVisible();
+  await expect(registration).toBeFocused();
+  await expect(registration).toHaveJSProperty('validationMessage', 'Enter between 1 and 8 CRO digits.');
+
+  await registration.fill('123456');
+  await page.locator('[name="vat_registered"]').check();
+  await page.locator('[name="vat_number"]').fill('ie 123-4567a');
+  const registeredEircode = page.locator('[name="registered_eircode"]');
+  await registeredEircode.fill('not-an-eircode');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(registeredEircode).toBeFocused();
+  await expect(registeredEircode).toHaveJSProperty('validationMessage', 'Enter a valid Irish Eircode.');
+
+  await registeredEircode.fill('t12-abc1');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(page.locator('[data-e7-step-kind="billing"]')).toBeVisible();
+  await expect(page.locator('[name="vat_number"]')).toHaveValue('IE1234567A');
+  await expect(registeredEircode).toHaveValue('T12 ABC1');
+
+  await page.locator('[name="billing_same_as_registered"]').uncheck();
+  await page.locator('[name="billing_line1"]').fill('2 Finance Street');
+  await page.locator('[name="billing_city"]').fill('Dublin');
+  const billingEircode = page.locator('[name="billing_eircode"]');
+  await billingEircode.fill('invalid');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(billingEircode).toBeFocused();
+  await expect(billingEircode).toHaveJSProperty('validationMessage', 'Enter a valid Irish Eircode.');
+
+  await billingEircode.fill('d02-x285');
+  const domain = page.locator('[name="domain"]');
+  await domain.fill('not a hostname');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(domain).toBeFocused();
+  await expect(domain).toHaveJSProperty('validationMessage', 'Enter a valid hostname.');
+
+  await domain.fill('https://Example.ie/catalogue');
+  const whatsapp = page.locator('[name="whatsapp"]');
+  await whatsapp.fill('123');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(whatsapp).toBeFocused();
+  await expect(whatsapp).toHaveJSProperty('validationMessage', 'Enter a valid international WhatsApp number.');
+
+  await whatsapp.fill('+353871234567');
+  await page.locator('[data-e7-next-step]').click();
+  await expect(page.locator('[data-e7-step-kind="review"]')).toBeVisible();
+  await page.locator('button[type="submit"]').click();
+  const payload = await page.evaluate(() => window.e7Requests.at(-1).body.business_profile);
+  expect(payload.registration_number).toBe('123456');
+  expect(payload.vat_number).toBe('IE1234567A');
+  expect(payload.registered_address.eircode).toBe('T12 ABC1');
+  expect(payload.billing_address.eircode).toBe('D02 X285');
+  expect(payload.domain).toBe('example.ie');
+  expect(payload.whatsapp).toBe('+353871234567');
+});
+
+test('guides OTP-off implicit submit to complete the remaining review steps', async ({ page }) => {
+  await installFlow(page, { irish: true, otp: false });
+  await page.locator('[data-e7-acceptance-form]').evaluate((form) => form.requestSubmit());
+  await expect(page.locator('[data-e7-status]')).toHaveText('Complete the remaining steps and review your details before accepting.');
+  await expect(page.locator('[data-e7-status]')).not.toContainText(/code/i);
+});
+
+test('keeps four and five-step progress plus international inputs inside 375px', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  for (const otp of [false, true]) {
+    await installFlow(page, { irish: true, otp, useCss: true, useIntl: true });
+    const dimensions = await page.evaluate(() => {
+      const dialog = document.querySelector('[data-e7-dialog]');
+      const labels = document.querySelector('.dialog-progress-labels');
+      const phone = document.querySelector('.iti');
+      return {
+        page: document.documentElement.scrollWidth,
+        viewport: document.documentElement.clientWidth,
+        dialogScroll: dialog.scrollWidth,
+        dialogClient: dialog.clientWidth,
+        labelsScroll: labels.scrollWidth,
+        labelsClient: labels.clientWidth,
+        visibleLabels: [...labels.children].filter((label) => label.getClientRects().length > 0).length,
+        phoneRight: phone.getBoundingClientRect().right,
+        phoneParentRight: phone.parentElement.getBoundingClientRect().right,
+      };
+    });
+    expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport);
+    expect(dimensions.dialogScroll).toBeLessThanOrEqual(dimensions.dialogClient);
+    expect(dimensions.labelsScroll).toBeLessThanOrEqual(dimensions.labelsClient);
+    expect(dimensions.visibleLabels).toBe(1);
+    expect(dimensions.phoneRight).toBeLessThanOrEqual(dimensions.phoneParentRight + 1);
+  }
 });
 
 test('keeps three accepted actions stacked without mobile overflow', async ({ page }) => {

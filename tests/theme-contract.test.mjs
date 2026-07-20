@@ -225,6 +225,31 @@ test('collects the complete Irish business profile with conditional fiscal and b
   assert.match(script, /getNumber\(\)/);
 });
 
+test('validates Irish fiscal, address and optional contact formats before building the payload', async () => {
+  const script = await read('assets/js/proposal.js');
+
+  assert.match(script, /\^\[0-9\]\{1,8\}\$/);
+  assert.match(script, /\^IE\[A-Z0-9\]\{7,10\}\$/);
+  assert.match(script, /D6W/);
+  assert.match(script, /Enter between 1 and 8 CRO digits/);
+  assert.match(script, /Enter a valid Irish VAT number/);
+  assert.match(script, /Enter a valid Irish Eircode/);
+  assert.match(script, /Enter a valid hostname/);
+  assert.match(script, /Enter a valid international WhatsApp number/);
+  assert.match(script, /isValidNumber\(\)/);
+  assert.match(script, /focus\(\)[\s\S]*reportValidity\(\)/);
+});
+
+test('keeps contacts editable while matching backend phone requiredness', async () => {
+  const template = await read('proposal.php');
+
+  const email = template.match(/<input id="e7-otp-email"[^>]*>/)?.[0] || '';
+  const phoneLine = template.match(/[^\n]+name="phone"[^\n]+/)?.[0] || '';
+  assert.doesNotMatch(email, /readonly/);
+  assert.doesNotMatch(phoneLine, /readonly/);
+  assert.match(phoneLine, /\$irish_invoice_flow \|\| ! \$otp_enabled/);
+});
+
 test('publishes the proposal title without exposing client details in social metadata', async () => {
   const functions = await read('functions.php');
   assert.match(functions, /page_title/);
@@ -359,6 +384,31 @@ test('renders invoice verification from the plugin allowlist without private bus
   assert.match(verifyCard, /border:0/);
   assert.match(verifyCard, /background:transparent/);
   assert.match(verifyCard, /box-shadow:none/);
+});
+
+test('treats an invalid invoice signature as authoritative over issued or cancelled status', async () => {
+  const template = await read('invoice-verify.php');
+
+  assert.match(template, /\$cancelled\s*=\s*\$signature_valid\s*&&/);
+  assert.match(template, /\$public_status\s*=\s*\$signature_valid/);
+  assert.match(template, /\$signature_valid\s*\?\s*ucfirst\(\$status\)\s*:\s*'Unverified'/);
+  assert.match(template, /!\s*\$signature_valid\s*\?\s*'is-invalid'/);
+});
+
+test('keeps long wizard progress and intl inputs contained on mobile', async () => {
+  const css = await read('src/input.css');
+
+  assert.match(css, /\.dialog-progress[^}]*min-width:0/);
+  assert.match(css, /\.dialog-progress-labels span[^}]*min-width:0/);
+  assert.match(css, /@media\(max-width:700px\)[\s\S]*\.dialog-progress-labels \.is-active\{[^}]*display:block/);
+  assert.match(css, /\.iti\{[^}]*min-width:0/);
+});
+
+test('does not mention code when an OTP-off form submits before review', async () => {
+  const script = await read('assets/js/proposal.js');
+
+  assert.match(script, /Complete the remaining steps and review your details before accepting/);
+  assert.match(script, /Conclua as etapas restantes e revise seus dados antes de aceitar/);
 });
 
 test('presents document validation as a clear professional summary with optional technical evidence', async () => {
