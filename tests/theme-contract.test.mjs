@@ -162,7 +162,7 @@ test('keeps the standard flow editable and bypasses every OTP endpoint when OTP 
   assert.doesNotMatch(template, /name="email"[^>]+readonly/);
   assert.match(script, /const otpEnabled = flow\.dataset\.e7OtpEnabled === '1'/);
   assert.match(script, /if \(!otpEnabled\) \{[\s\S]*showStep\(currentStep \+ 1\)/);
-  assert.match(script, /!otpEnabled \|\| otpValidated/);
+  assert.match(script, /if \(otpEnabled && !otpValidated\)/);
   assert.match(script, /channel:\s*'email'/);
   assert.match(script, /\/otp\/verify/);
   assert.match(script, /otp:\s*otpEnabled \? data\.get\('otp'\) : ''/);

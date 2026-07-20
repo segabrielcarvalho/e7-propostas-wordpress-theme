@@ -19,6 +19,7 @@ const otpMarkup = `
   </section>`;
 
 const flowFixture = ({ irish, otp }) => `
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <section data-e7-flow data-e7-otp-enabled="${otp ? '1' : '0'}" data-e7-irish-flow="${irish ? '1' : '0'}" data-locale="${irish ? 'en_IE' : 'pt_BR'}" data-rest-url="/api" data-csrf="csrf">
     <button data-e7-open-dialog type="button">Open</button>
     <dialog data-e7-dialog><button data-e7-close-dialog type="button">Close</button>
@@ -40,7 +41,7 @@ const flowFixture = ({ irish, otp }) => `
           <div data-e7-vat-fields hidden><input name="vat_number"></div>
           <input name="registered_line1" required value="1 Main Street"><input name="registered_line2" value="">
           <input name="registered_city" required value="Cork"><input name="registered_county" value="">
-          <input name="registered_eircode" required value="T12 ABC1"><input name="registered_country_code" value="IE">
+          <input name="registered_eircode" required value="T12 AC11"><input name="registered_country_code" value="IE">
         </section>
         <section data-e7-step data-e7-step-kind="billing" hidden><h2 tabindex="-1">Billing & use</h2>
           <input name="finance_email" type="email"><input name="purchase_order">
@@ -191,9 +192,9 @@ test('supports the 2 and 4-step OTP-off matrix without calling OTP endpoints', a
         responsible: { name: 'Aoife Murphy', role: 'Director', email: 'aoife@example.ie', phone: '+353871234567' },
         type: 'company', legal_name: 'Example Limited', trading_name: '', registration_number: '123456',
         vat_registered: false, vat_number: '',
-        registered_address: { line1: '1 Main Street', line2: '', city: 'Cork', county: '', eircode: 'T12 ABC1', country_code: 'IE' },
+        registered_address: { line1: '1 Main Street', line2: '', city: 'Cork', county: '', eircode: 'T12 AC11', country_code: 'IE' },
         billing_same_as_registered: true,
-        billing_address: { line1: '1 Main Street', line2: '', city: 'Cork', county: '', eircode: 'T12 ABC1', country_code: 'IE' },
+        billing_address: { line1: '1 Main Street', line2: '', city: 'Cork', county: '', eircode: 'T12 AC11', country_code: 'IE' },
         payer_same_as_business: true, payer_legal_name: '', finance_email: '', purchase_order: '', service_city: 'Cork', domain: '', whatsapp: '',
         confirmations: { b2b: true, ireland: true, accuracy: true },
       });
@@ -276,11 +277,11 @@ test('validates and normalizes Irish invoice formats on their own fields before 
   await expect(registeredEircode).toBeFocused();
   await expect(registeredEircode).toHaveJSProperty('validationMessage', 'Enter a valid Irish Eircode.');
 
-  await registeredEircode.fill('t12-abc1');
+  await registeredEircode.fill('t12-ac11');
   await page.locator('[data-e7-next-step]').click();
   await expect(page.locator('[data-e7-step-kind="billing"]')).toBeVisible();
   await expect(page.locator('[name="vat_number"]')).toHaveValue('IE1234567A');
-  await expect(registeredEircode).toHaveValue('T12 ABC1');
+  await expect(registeredEircode).toHaveValue('T12 AC11');
 
   await page.locator('[name="billing_same_as_registered"]').uncheck();
   await page.locator('[name="billing_line1"]').fill('2 Finance Street');
@@ -312,7 +313,7 @@ test('validates and normalizes Irish invoice formats on their own fields before 
   const payload = await page.evaluate(() => window.e7Requests.at(-1).body.business_profile);
   expect(payload.registration_number).toBe('123456');
   expect(payload.vat_number).toBe('IE1234567A');
-  expect(payload.registered_address.eircode).toBe('T12 ABC1');
+  expect(payload.registered_address.eircode).toBe('T12 AC11');
   expect(payload.billing_address.eircode).toBe('D02 X285');
   expect(payload.domain).toBe('example.ie');
   expect(payload.whatsapp).toBe('+353871234567');

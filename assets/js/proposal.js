@@ -105,6 +105,38 @@
     return picker ? picker.getNumber() : input.value.trim();
   };
 
+  const e164Pattern = /^\+[1-9]\d{7,14}$/;
+  const croPattern = /^[0-9]{1,8}$/;
+  const vatPattern = /^IE[A-Z0-9]{7,10}$/;
+  const eircodePattern = /^(?:[AC-FHKNPRTV-Y][0-9]{2}|D6W)[0-9AC-FHKNPRTV-Y]{4}$/;
+  const hostnamePattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+  const normalizeVat = (value) => value.toUpperCase().replace(/[\s.\-]+/g, '');
+  const normalizeEircode = (value) => {
+    const compact = value.toUpperCase().replace(/[\s\-]+/g, '');
+    return eircodePattern.test(compact) ? `${compact.slice(0, 3)} ${compact.slice(3)}` : compact;
+  };
+  const normalizeHostname = (value) => {
+    const candidate = value.trim().toLowerCase();
+    if (candidate === '') return '';
+    try {
+      return (candidate.includes('://') ? new URL(candidate).hostname : candidate).replace(/\.$/, '');
+    } catch {
+      return candidate;
+    }
+  };
+  const reportFieldError = (input, valid, message) => {
+    input.setCustomValidity(valid ? '' : message);
+    if (valid) return true;
+    input.focus();
+    input.reportValidity();
+    return false;
+  };
+  const validInternationalPhone = (input) => {
+    const picker = phonePickers.get(input);
+    const number = normalizedPhone(input);
+    return e164Pattern.test(number) && (!picker || picker.isValidNumber());
+  };
+
   const setRequired = (container, names, required) => {
     names.forEach((name) => {
       const input = form.elements[name];
@@ -166,13 +198,55 @@
       emailInput.reportValidity();
       return false;
     }
-    const requiredPhone = form.elements.phone;
-    if (requiredPhone?.required && !/^\+[1-9]\d{7,14}$/.test(normalizedPhone(requiredPhone))) {
-      requiredPhone.setCustomValidity(isEnglish ? 'Enter an international phone number.' : 'Informe um telefone internacional.');
-      requiredPhone.reportValidity();
-      return false;
+    const phone = form.elements.phone;
+    const hasPhone = phone?.value.trim() !== '';
+    if (phone && !reportFieldError(
+      phone,
+      (!phone.required && !hasPhone) || validInternationalPhone(phone),
+      isEnglish ? 'Enter a valid international phone number.' : 'Informe um telefone internacional válido.',
+    )) return false;
+    return true;
+  };
+
+  const validateIrishCompany = () => {
+    const registrationValue = registration.value.trim();
+    const registrationValid = (businessType.value === 'sole_trader' && registrationValue === '') || croPattern.test(registrationValue);
+    if (!reportFieldError(registration, registrationValid, 'Enter between 1 and 8 CRO digits.')) return false;
+
+    const vatNumber = form.elements.vat_number;
+    if (vatToggle.checked) vatNumber.value = normalizeVat(vatNumber.value);
+    if (!reportFieldError(vatNumber, !vatToggle.checked || vatPattern.test(vatNumber.value), 'Enter a valid Irish VAT number.')) return false;
+
+    const eircode = form.elements.registered_eircode;
+    eircode.value = normalizeEircode(eircode.value);
+    return reportFieldError(eircode, eircodePattern.test(eircode.value.replace(' ', '')), 'Enter a valid Irish Eircode.');
+  };
+
+  const validateIrishBilling = () => {
+    if (!billingSame.checked) {
+      const billingEircode = form.elements.billing_eircode;
+      billingEircode.value = normalizeEircode(billingEircode.value);
+      if (!reportFieldError(billingEircode, eircodePattern.test(billingEircode.value.replace(' ', '')), 'Enter a valid Irish Eircode.')) return false;
     }
-    requiredPhone?.setCustomValidity('');
+
+    const domain = form.elements.domain;
+    domain.value = normalizeHostname(domain.value);
+    if (!reportFieldError(domain, domain.value === '' || hostnamePattern.test(domain.value), 'Enter a valid hostname.')) return false;
+
+    const whatsapp = form.elements.whatsapp;
+    const hasWhatsapp = whatsapp.value.trim() !== '';
+    return reportFieldError(
+      whatsapp,
+      !hasWhatsapp || validInternationalPhone(whatsapp),
+      'Enter a valid international WhatsApp number.',
+    );
+  };
+
+  const validateCurrentStepFormats = () => {
+    const kind = steps[currentStep].dataset.e7StepKind;
+    if (kind === 'details') return validateContact();
+    if (irishFlow && kind === 'company') return validateIrishCompany();
+    if (irishFlow && kind === 'billing') return validateIrishBilling();
     return true;
   };
 
@@ -181,7 +255,7 @@
     line2: form.elements[`${prefix}_line2`]?.value.trim() || '',
     city: form.elements[`${prefix}_city`]?.value.trim() || '',
     county: form.elements[`${prefix}_county`]?.value.trim() || '',
-    eircode: form.elements[`${prefix}_eircode`]?.value.trim() || '',
+    eircode: normalizeEircode(form.elements[`${prefix}_eircode`]?.value || ''),
     country_code: 'IE',
   });
 
@@ -201,7 +275,7 @@
       trading_name: form.elements.trading_name.value.trim(),
       registration_number: form.elements.registration_number.value.trim(),
       vat_registered: form.elements.vat_registered.checked,
-      vat_number: form.elements.vat_registered.checked ? form.elements.vat_number.value.trim() : '',
+      vat_number: form.elements.vat_registered.checked ? normalizeVat(form.elements.vat_number.value) : '',
       registered_address: registeredAddress,
       billing_same_as_registered: sameBilling,
       billing_address: sameBilling ? registeredAddress : addressFromForm('billing'),
@@ -210,7 +284,7 @@
       finance_email: form.elements.finance_email.value.trim(),
       purchase_order: form.elements.purchase_order.value.trim(),
       service_city: form.elements.service_city.value.trim(),
-      domain: form.elements.domain.value.trim(),
+      domain: normalizeHostname(form.elements.domain.value),
       whatsapp: normalizedPhone(form.elements.whatsapp),
       confirmations: {
         b2b: form.elements.confirmation_b2b.checked,
@@ -273,7 +347,9 @@
     if (sentFingerprint !== '') resetOtpState();
     emailInput.setCustomValidity('');
   });
-  form.elements.phone?.addEventListener('input', () => form.elements.phone.setCustomValidity(''));
+  form.addEventListener('input', (event) => {
+    if (event.target instanceof HTMLInputElement) event.target.setCustomValidity('');
+  });
   otpDigitInputs.forEach((input, index) => {
     input.addEventListener('focus', () => input.select());
     input.addEventListener('input', () => {
@@ -356,8 +432,8 @@
   };
 
   nextButton.addEventListener('click', async () => {
+    if (!validateCurrentStepFormats()) return;
     if (invalidFieldInCurrentStep()) return;
-    if (currentStep === 0 && !validateContact()) return;
     if (!otpEnabled) {
       showStep(currentStep + 1);
       return;
@@ -379,7 +455,13 @@
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (currentStep !== steps.length - 1 || !(!otpEnabled || otpValidated)) {
+    if (currentStep !== steps.length - 1) {
+      status.textContent = isEnglish
+        ? 'Complete the remaining steps and review your details before accepting.'
+        : 'Conclua as etapas restantes e revise seus dados antes de aceitar.';
+      return;
+    }
+    if (otpEnabled && !otpValidated) {
       status.textContent = isEnglish ? 'Validate the code before accepting.' : 'Valide o código antes de aceitar.';
       return;
     }

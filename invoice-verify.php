@@ -3,16 +3,19 @@ $view = e7_propostas_view();
 $GLOBALS['view'] = $view;
 $record = is_array($view['record'] ?? null) ? $view['record'] : null;
 $status = is_array($record) ? (string) ($record['status'] ?? '') : '';
-$cancelled = is_array($record) && (($record['cancelled'] ?? false) === true || $status === 'cancelled');
 $signature_valid = is_array($record) && ($record['signature_verified'] ?? false) === true;
+$cancelled = $signature_valid && (($record['cancelled'] ?? false) === true || $status === 'cancelled');
 $valid = is_array($record) && ! $cancelled && $signature_valid && $status === 'issued';
-$state_class = $cancelled ? 'is-cancelled' : ($valid ? 'is-verified' : 'is-invalid');
-$state_title = $cancelled ? 'Invoice cancelled' : ($valid ? 'Invoice verified' : 'Invoice invalid');
-$state_lead = $cancelled
-    ? 'This invoice has been cancelled and must not be treated as payable.'
-    : ($valid
-        ? 'The invoice record and cryptographic signature are valid.'
-        : 'The invoice record could not be fully validated. Contact E7 Company before taking action.');
+$public_status = $signature_valid ? ucfirst($status) : 'Unverified';
+$state_class = ! $signature_valid ? 'is-invalid' : ($cancelled ? 'is-cancelled' : ($valid ? 'is-verified' : 'is-invalid'));
+$state_title = ! $signature_valid ? 'Invoice invalid' : ($cancelled ? 'Invoice cancelled' : ($valid ? 'Invoice verified' : 'Invoice invalid'));
+$state_lead = ! $signature_valid
+    ? 'The invoice record could not be authenticated. Contact E7 Company before taking action.'
+    : ($cancelled
+        ? 'This authenticated invoice has been cancelled and must not be treated as payable.'
+        : ($valid
+            ? 'The invoice record and cryptographic signature are valid.'
+            : 'The invoice record could not be fully validated. Contact E7 Company before taking action.'));
 get_header();
 ?>
 <main id="main-content" class="proposal-main">
@@ -34,8 +37,8 @@ get_header();
                 <div><dt>Customer</dt><dd><?php echo esc_html((string) $record['customer_legal_name']); ?></dd></div>
                 <div><dt>Issued at</dt><dd><?php echo esc_html((string) $record['issued_at']); ?></dd></div>
                 <div><dt>Total</dt><dd><?php echo esc_html((string) $record['currency'] . ' ' . (string) $record['total']); ?></dd></div>
-                <div><dt>Status</dt><dd><?php echo esc_html(ucfirst((string) $record['status'])); ?></dd></div>
-                <?php if ((string) ($record['replacement_invoice_number'] ?? '') !== '') : ?><div><dt>Replacement invoice</dt><dd><?php echo esc_html((string) $record['replacement_invoice_number']); ?></dd></div><?php endif; ?>
+                <div><dt>Status</dt><dd><?php echo esc_html($public_status); ?></dd></div>
+                <?php if ($signature_valid && (string) ($record['replacement_invoice_number'] ?? '') !== '') : ?><div><dt>Replacement invoice</dt><dd><?php echo esc_html((string) $record['replacement_invoice_number']); ?></dd></div><?php endif; ?>
             </dl>
         </section>
 
